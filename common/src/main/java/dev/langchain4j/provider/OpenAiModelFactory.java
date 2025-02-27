@@ -2,23 +2,49 @@ package dev.langchain4j.provider;
 
 import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.pojo.EmbeddingModelConfig;
+import com.tencent.supersonic.common.pojo.Parameter;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
 
 @Service
-public class OpenAiModelFactory implements ModelFactory, InitializingBean {
+public class OpenAiModelFactory implements ModelFactory {
 
     public static final String PROVIDER = "OPEN_AI";
     public static final String DEFAULT_BASE_URL = "https://api.openai.com/v1";
     public static final String DEFAULT_MODEL_NAME = "gpt-4o-mini";
     public static final String DEFAULT_EMBEDDING_MODEL_NAME = "text-embedding-ada-002";
     public static final String DEFAULT_API_VERSION = "2024-02-01";
+
+    private static final List<Parameter> PARAMETERS = List.of(
+            new Parameter("baseUrl", DEFAULT_BASE_URL, "BaseUrl", "",
+                    "string"),
+            new Parameter("apiKey", "", "ApiKey", "",
+                    "password"),
+            new Parameter("modelName", DEFAULT_MODEL_NAME, "ModelName",
+                    "", "string"),
+            new Parameter("apiVersion", DEFAULT_API_VERSION,
+                    "ApiVersion", "", "string"),
+            new Parameter("temperature", "0.0", "Temperature", "", "slider"),
+            new Parameter("timeOut", "60", "超时时间(秒)", "", "number")
+    );
+
+    @Override
+    public String type() {
+        return PROVIDER;
+    }
+
+    @Override
+    public List<Parameter> chatParameters() {
+        return PARAMETERS;
+    }
+
+
 
     @Override
     public ChatLanguageModel createChatModel(ChatModelConfig modelConfig) {
@@ -40,8 +66,4 @@ public class OpenAiModelFactory implements ModelFactory, InitializingBean {
                 .logResponses(embeddingModel.getLogResponses()).build();
     }
 
-    @Override
-    public void afterPropertiesSet() {
-        ModelProvider.add(PROVIDER, this);
-    }
 }

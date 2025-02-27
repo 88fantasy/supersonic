@@ -12,6 +12,7 @@ import com.tencent.supersonic.common.util.ChatAppManager;
 import com.tencent.supersonic.common.util.ContextUtils;
 import com.tencent.supersonic.headless.api.pojo.response.QueryState;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.CustomAiMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -60,6 +61,9 @@ public class PlainTextExecutor implements ChatQueryExecutor {
         result.setQueryState(QueryState.SUCCESS);
         result.setQueryMode(executeContext.getParseInfo().getQueryMode());
         result.setTextResult(response.content().text());
+        if (response.content() instanceof CustomAiMessage customAiMessage) {
+            result.setResponse(customAiMessage.attributes());
+        }
 
         return result;
     }

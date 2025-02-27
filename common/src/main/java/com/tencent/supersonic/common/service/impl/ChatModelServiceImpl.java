@@ -6,9 +6,12 @@ import com.tencent.supersonic.common.config.ChatModel;
 import com.tencent.supersonic.common.persistence.dataobject.ChatModelDO;
 import com.tencent.supersonic.common.persistence.mapper.ChatModelMapper;
 import com.tencent.supersonic.common.pojo.ChatModelConfig;
+import com.tencent.supersonic.common.pojo.Parameter;
 import com.tencent.supersonic.common.pojo.User;
 import com.tencent.supersonic.common.service.ChatModelService;
 import com.tencent.supersonic.common.util.JsonUtil;
+import dev.langchain4j.provider.ModelFactory;
+import dev.langchain4j.provider.ModelProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -65,6 +69,12 @@ public class ChatModelServiceImpl extends ServiceImpl<ChatModelMapper, ChatModel
     @Override
     public void deleteChatModel(Integer id) {
         removeById(id);
+    }
+
+    @Override
+    public Map<String, List<Parameter>> getModelParameters() {
+        return ModelProvider.factories().stream().filter(ModelFactory::supportChat)
+                .collect(Collectors.toMap(ModelFactory::type, ModelFactory::chatParameters));
     }
 
     private ChatModel convert(ChatModelDO chatModelDO) {

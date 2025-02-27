@@ -2,6 +2,8 @@ package com.tencent.supersonic.common.service.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.tencent.supersonic.common.config.EmbeddingModelParameterConfig;
+import com.tencent.supersonic.common.pojo.EmbeddingModelConfig;
 import com.tencent.supersonic.common.service.EmbeddingService;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -23,6 +25,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -37,17 +40,21 @@ import java.util.stream.Collectors;
 @Slf4j
 public class EmbeddingServiceImpl implements EmbeddingService {
 
-    private Cache<String, Boolean> cache = CacheBuilder.newBuilder().maximumSize(10000)
+    @Autowired
+    EmbeddingModelParameterConfig embeddingModelParameterConfig;
+
+    private final Cache<String, Boolean> cache = CacheBuilder.newBuilder().maximumSize(10000)
             .expireAfterWrite(10, TimeUnit.HOURS).build();
+
 
     @Override
     public void addQuery(String collectionName, List<TextSegment> queries) {
-        EmbeddingStore embeddingStore =
+        EmbeddingStore<TextSegment> embeddingStore =
                 EmbeddingStoreFactoryProvider.getFactory().create(collectionName);
         for (TextSegment query : queries) {
             String question = query.text();
             try {
-                EmbeddingModel embeddingModel = ModelProvider.getEmbeddingModel();
+                EmbeddingModel embeddingModel = ModelProvider.getEmbeddingModel(embeddingModelParameterConfig.convert());
                 Embedding embedding = embeddingModel.embed(question).content();
                 boolean existSegment = existSegment(embeddingStore, query, embedding);
                 if (existSegment) {
@@ -62,7 +69,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
         }
     }
 
-    private boolean existSegment(EmbeddingStore embeddingStore, TextSegment query,
+    private boolean existSegment(EmbeddingStore<TextSegment> embeddingStore, TextSegment query,
             Embedding embedding) {
         String queryId = TextSegmentConvert.getQueryId(query);
         if (queryId == null) {
@@ -79,7 +86,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
         EmbeddingSearchRequest request = EmbeddingSearchRequest.builder().queryEmbedding(embedding)
                 .filter(filter).minScore(1.0d).maxResults(1).build();
 
-        EmbeddingSearchResult result = embeddingStore.search(request);
+        EmbeddingSearchResult<TextSegment> result = embeddingStore.search(request);
         List<EmbeddingMatch<TextSegment>> relevant = result.matches();
         boolean exists = CollectionUtils.isNotEmpty(relevant);
         cache.put(queryId, exists);
@@ -88,7 +95,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
 
     @Override
     public void deleteQuery(String collectionName, List<TextSegment> queries) {
-        EmbeddingStore embeddingStore =
+        EmbeddingStore<TextSegment> embeddingStore =
                 EmbeddingStoreFactoryProvider.getFactory().create(collectionName);
         try {
 
@@ -100,7 +107,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
                         new MetadataFilterBuilder(TextSegmentConvert.QUERY_ID);
                 Filter filter = filterBuilder.isIn(queryIds);
                 embeddingStore.removeAll(filter);
-                queryIds.stream().forEach(queryId -> cache.put(queryId, false));
+                queryIds.forEach(queryId -> cache.put(queryId, false));
             }
 
         } catch (Exception e) {

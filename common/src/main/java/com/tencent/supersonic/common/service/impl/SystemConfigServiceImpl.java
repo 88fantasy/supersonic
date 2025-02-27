@@ -45,7 +45,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
             systemConfig.setId(1);
             systemConfig.init();
             // use system property to initialize system parameter
-            systemConfig.getParameters().stream().forEach(p -> {
+            systemConfig.getParameters().forEach(p -> {
                 if (environment.containsProperty(p.getName())) {
                     p.setValue(environment.getProperty(p.getName()));
                 }

@@ -187,7 +187,7 @@ public class OpenAiChatModel implements ChatLanguageModel, TokenCountEstimator {
 
         ChatCompletionRequest.Builder requestBuilder = ChatCompletionRequest.builder()
                 .model(modelName).messages(toOpenAiMessages(messages)).topP(topP).stop(stop)
-                .maxTokens(maxTokens).presencePenalty(presencePenalty)
+                .maxCompletionTokens(maxTokens).presencePenalty(presencePenalty)
                 .frequencyPenalty(frequencyPenalty).logitBias(logitBias)
                 .responseFormat(responseFormat).seed(seed).user(user)
                 .parallelToolCalls(parallelToolCalls);

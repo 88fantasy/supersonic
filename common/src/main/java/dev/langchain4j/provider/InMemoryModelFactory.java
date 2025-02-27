@@ -2,23 +2,40 @@ package dev.langchain4j.provider;
 
 import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.pojo.EmbeddingModelConfig;
+import com.tencent.supersonic.common.pojo.Parameter;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.S2OnnxEmbeddingModel;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
-public class InMemoryModelFactory implements ModelFactory, InitializingBean {
+public class InMemoryModelFactory implements ModelFactory  {
     public static final String PROVIDER = "IN_MEMORY";
 
+
     @Override
-    public ChatLanguageModel createChatModel(ChatModelConfig modelConfig) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public String type() {
+        return PROVIDER;
     }
 
     @Override
+    public List<Parameter> chatParameters() {
+        return List.of();
+    }
+
+    @Override
+    public boolean supportChat() {
+        return false;
+    }
+
+    @Override
+    public ChatLanguageModel createChatModel(ChatModelConfig modelConfig) {
+        return null;
+    }
+
     public EmbeddingModel createEmbeddingModel(EmbeddingModelConfig embeddingModel) {
         String modelPath = embeddingModel.getModelPath();
         String vocabularyPath = embeddingModel.getVocabularyPath();
@@ -35,8 +52,4 @@ public class InMemoryModelFactory implements ModelFactory, InitializingBean {
         return EmbeddingModelConstant.BGE_SMALL_ZH_MODEL;
     }
 
-    @Override
-    public void afterPropertiesSet() {
-        ModelProvider.add(PROVIDER, this);
-    }
 }

@@ -8,8 +8,10 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class ModelProvider {
 
@@ -21,6 +23,18 @@ public class ModelProvider {
 
     public static void add(String provider, ModelFactory modelFactory) {
         factories.put(provider, modelFactory);
+    }
+
+    public static Collection<ModelFactory> factories() {
+        return factories.values();
+    }
+
+    public static ModelFactory getFactory(String model) {
+        if (!factories.containsKey(model)) {
+            throw new RuntimeException(
+                    "Unknown Model Provider: " + model);
+        }
+        return factories.get(model);
     }
 
     public static ChatLanguageModel getChatModel() {
@@ -51,12 +65,16 @@ public class ModelProvider {
                     ContextUtils.getBean(EmbeddingModelParameterConfig.class);
             embeddingModel = parameterConfig.convert();
         }
-        ModelFactory modelFactory = factories.get(embeddingModel.getProvider().toUpperCase());
-        if (modelFactory != null) {
-            return modelFactory.createEmbeddingModel(embeddingModel);
+        String provider = embeddingModel.getProvider();
+        if(!factories.containsKey(provider)) {
+            throw new RuntimeException(
+                    "Unknown EmbeddingModel provider: " + provider);
         }
-
-        throw new RuntimeException(
-                "Unsupported EmbeddingModel provider: " + embeddingModel.getProvider());
+        ModelFactory modelFactory = factories.get(provider);
+        if (!modelFactory.supportEmbedding()) {
+            throw new RuntimeException(
+                    "Unsupported EmbeddingModel provider: " + provider);
+        }
+        return modelFactory.createEmbeddingModel(embeddingModel);
     }
 }

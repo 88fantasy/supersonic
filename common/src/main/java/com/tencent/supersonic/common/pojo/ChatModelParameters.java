@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import dev.langchain4j.provider.AzureModelFactory;
 import dev.langchain4j.provider.DashscopeModelFactory;
+import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.DifyModelFactory;
 import dev.langchain4j.provider.LocalAiModelFactory;
 import dev.langchain4j.provider.ModelProvider;
@@ -59,7 +60,8 @@ public class ChatModelParameters {
     }
 
     private static List<String> getCandidateValues() {
-        return Lists.newArrayList(OpenAiModelFactory.PROVIDER, OllamaModelFactory.PROVIDER,
+        return Lists.newArrayList(DeepSeekModelFactory.PROVIDER,
+                OpenAiModelFactory.PROVIDER, OllamaModelFactory.PROVIDER,
                 QianfanModelFactory.PROVIDER, ZhipuModelFactory.PROVIDER,
                 LocalAiModelFactory.PROVIDER, DashscopeModelFactory.PROVIDER,
                 AzureModelFactory.PROVIDER, DifyModelFactory.PROVIDER);
@@ -74,7 +76,8 @@ public class ChatModelParameters {
                         ZhipuModelFactory.PROVIDER, ZhipuModelFactory.DEFAULT_BASE_URL,
                         LocalAiModelFactory.PROVIDER, LocalAiModelFactory.DEFAULT_BASE_URL,
                         DashscopeModelFactory.PROVIDER, DashscopeModelFactory.DEFAULT_BASE_URL,
-                        DifyModelFactory.PROVIDER, DifyModelFactory.DEFAULT_BASE_URL));
+                        DifyModelFactory.PROVIDER, DifyModelFactory.DEFAULT_BASE_URL,
+                        DeepSeekModelFactory.PROVIDER, DeepSeekModelFactory.DEFAULT_BASE_URL));
     }
 
     private static List<Parameter.Dependency> getApiKeyDependency() {
@@ -82,15 +85,16 @@ public class ChatModelParameters {
                 Lists.newArrayList(OpenAiModelFactory.PROVIDER, QianfanModelFactory.PROVIDER,
                         ZhipuModelFactory.PROVIDER, LocalAiModelFactory.PROVIDER,
                         AzureModelFactory.PROVIDER, DashscopeModelFactory.PROVIDER,
-                        DifyModelFactory.PROVIDER),
-                ImmutableMap.of(OpenAiModelFactory.PROVIDER,
-                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), QianfanModelFactory.PROVIDER,
-                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), ZhipuModelFactory.PROVIDER,
-                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), LocalAiModelFactory.PROVIDER,
-                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), AzureModelFactory.PROVIDER,
-                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), DashscopeModelFactory.PROVIDER,
-                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), DifyModelFactory.PROVIDER,
-                        ModelProvider.DEMO_CHAT_MODEL.getApiKey()));
+                        DifyModelFactory.PROVIDER, DeepSeekModelFactory.PROVIDER),
+                ImmutableMap.of(OpenAiModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
+                        QianfanModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
+                        ZhipuModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
+                        LocalAiModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
+                        AzureModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
+                        DashscopeModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
+                        DifyModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
+                        DeepSeekModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey()
+                ));
     }
 
     private static List<Parameter.Dependency> getApiVersionDependency() {
@@ -108,7 +112,8 @@ public class ChatModelParameters {
                         LocalAiModelFactory.PROVIDER, LocalAiModelFactory.DEFAULT_MODEL_NAME,
                         AzureModelFactory.PROVIDER, AzureModelFactory.DEFAULT_MODEL_NAME,
                         DashscopeModelFactory.PROVIDER, DashscopeModelFactory.DEFAULT_MODEL_NAME,
-                        DifyModelFactory.PROVIDER, DifyModelFactory.DEFAULT_MODEL_NAME));
+                        DifyModelFactory.PROVIDER, DifyModelFactory.DEFAULT_MODEL_NAME,
+                        DeepSeekModelFactory.PROVIDER, DeepSeekModelFactory.DEFAULT_MODEL_NAME));
     }
 
     private static List<Parameter.Dependency> getEndpointDependency() {
