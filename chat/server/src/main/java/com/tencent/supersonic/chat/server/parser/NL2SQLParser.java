@@ -30,6 +30,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.ModelProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -70,6 +71,19 @@ public class NL2SQLParser implements ChatQueryParser {
         ChatAppManager.register(APP_KEY_MULTI_TURN,
                 ChatApp.builder().prompt(REWRITE_MULTI_TURN_INSTRUCTION).name("多轮对话改写")
                         .appModule(AppModule.CHAT).description("通过大模型根据历史对话来改写本轮对话").enable(false)
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
+                                #角色: 你是一名在数据分析领域拥有丰富经验的数据产品经理。
+                                #任务: 根据用户提供的当前问题及历史背景信息，包括数据表结构映射（度量、维度和值域等），理解其背后的业务需求，并将问题以更清晰准确的方式重新表述。
+                                #规则:
+                                1. 在重写过程中，请确保保留所有关键元素，如实体、度量、维度、值域以及日期范围。
+                                2. 最终输出应仅为经过优化后的问题描述，不包含其他额外内容或解释。
+                                #当前问题: {{current_question}}
+                                #当前表结构映射: {{current_schema}}
+                                #历史问题: {{history_question}}
+                                #历史表结构映射: {{history_schema}}
+                                #历史SQL查询: {{history_sql}}
+                                #重写后的问题:
+                                """))
                         .build());
     }
 

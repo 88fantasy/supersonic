@@ -1,6 +1,6 @@
 import { Form, Input, Button, Switch, Tabs, Select, message, Space, Tooltip, Row, Col } from 'antd';
 import MainTitleMark from '@/components/MainTitleMark';
-import { AgentType, ChatAppConfig, ChatAppConfigItem } from './type';
+import { AgentType, ChatAppConfig, ChatAppConfigItem, ChatModel } from './type';
 import { useEffect, useState } from 'react';
 import styles from './style.less';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
@@ -32,9 +32,14 @@ const AgentForm: React.FC<Props> = ({ editAgent, onSaveAgent, onCreateToolBtnCli
   const [examples, setExamples] = useState<{ id: string; question?: string }[]>([]);
   const [activeKey, setActiveKey] = useState('basic');
   const [modelTypeOptions, setModelTypeOptions] = useState<
-    (OptionsItem & { enable: boolean; prompt: string; description: string })[]
+    (OptionsItem & {
+      enable: boolean;
+      prompt: string;
+      description: string;
+      providerPrompts: { [key: string]: string };
+    })[]
   >([]);
-  const [llmConfigListOptions, setLlmConfigListOptions] = useState<OptionsItem[]>([]);
+  const [llmConfigList, setLlmConfigList] = useState<ChatModel[]>([]);
   const [currentChatModel, setCurrentChatModel] = useState<string>('');
   const [defaultChatAppConfig, setDefaultChatAppConfig] = useState<ChatAppConfig>({});
   const [formData, setFormData] = useState<any>({
@@ -75,13 +80,7 @@ const AgentForm: React.FC<Props> = ({ editAgent, onSaveAgent, onCreateToolBtnCli
   const queryLlmList = async () => {
     const { code, data } = await getLlmList();
     if (code === 200 && data) {
-      const options = data.map((item) => {
-        return {
-          label: item.name,
-          value: item.id,
-        };
-      });
-      setLlmConfigListOptions(options);
+      setLlmConfigList(data);
     } else {
       message.error('获取模型场景类型失败');
     }
@@ -100,6 +99,7 @@ const AgentForm: React.FC<Props> = ({ editAgent, onSaveAgent, onCreateToolBtnCli
           enable: config.enable,
           description: config.description,
           prompt: config.prompt,
+          providerPrompts: config.providerPrompts,
         };
       });
       const sqlParserIndex = options.findIndex((item) => item.value === 'S2SQL_PARSER');
@@ -328,7 +328,28 @@ const AgentForm: React.FC<Props> = ({ editAgent, onSaveAgent, onCreateToolBtnCli
                       label="应用模型"
                       tooltip={item.description}
                     >
-                      <Select placeholder="" options={llmConfigListOptions} />
+                      <Select
+                        placeholder=""
+                        options={llmConfigList.map((model) => {
+                          return {
+                            label: model.name,
+                            value: model.id,
+                          };
+                        })}
+                        onChange={(value) => {
+                          const model = llmConfigList.find((config) => value == config.id);
+                          if (model) {
+                            const formData = form.getFieldsValue();
+                            const { chatAppConfig } = formData;
+                            chatAppConfig[item.value].prompt =
+                              item.providerPrompts[model.config.provider] || item.prompt;
+                            form.setFieldsValue({
+                              ...formData,
+                              chatAppConfig: chatAppConfig,
+                            });
+                          }
+                        }}
+                      />
                     </FormItem>
                     <FormItem
                       name={['chatAppConfig', item.value, 'prompt']}

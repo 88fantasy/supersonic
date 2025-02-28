@@ -11,6 +11,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.ModelProvider;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -38,7 +39,18 @@ public class DataInterpretProcessor implements ExecuteResultProcessor {
 
     public DataInterpretProcessor() {
         ChatAppManager.register(APP_KEY, ChatApp.builder().prompt(INSTRUCTION).name("结果数据解读")
-                .appModule(AppModule.CHAT).description("通过大模型对结果数据做提炼总结").enable(false).build());
+                .appModule(AppModule.CHAT).description("通过大模型对结果数据做提炼总结").enable(false)
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
+                                #角色: 你是一名每天与业务用户沟通的数据专家。
+                                #任务: 你将收到用户提出的问题以及从数据库中查询到的相关结果数据，请解读数据并组织简短回答。
+                                #规则:
+                                1.始终使用和`问题`相同的语言进行解读。
+                                2.始终在`回答`中引用一些关键数据。
+                                #问题:{{question}}
+                                #数据:{{data}}
+                                #回答:
+                                """))
+                .build());
     }
 
 

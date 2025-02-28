@@ -11,6 +11,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.output.structured.Description;
+import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.service.AiServices;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +49,28 @@ public class OnePassSCSqlGenStrategy extends SqlGenStrategy {
 
     public OnePassSCSqlGenStrategy() {
         ChatAppManager.register(APP_KEY, ChatApp.builder().prompt(INSTRUCTION).name("语义SQL解析")
-                .appModule(AppModule.CHAT).description("通过大模型做语义解析生成S2SQL").enable(true).build());
+                .appModule(AppModule.CHAT).description("通过大模型做语义解析生成S2SQL").enable(true)
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
+                                # 角色: 你是一名在SQL语言方面经验丰富的数据分析师。
+                                # 任务: 根据用户提供的自然语言问题，将其转换为有效的SQL查询语句，以便通过底层数据库执行并返回相关数据。
+                                # 规则:
+                                1. SQL查询中涉及的所有列名和值必须严格基于`表结构映射`中提供的信息，避免引入未提及的字段或数据。
+                                2. 当需要指定时间范围时，请使用`>`, `<`, `>=`, `<=`等比较运算符。如果问题中没有明确提到时间范围，则不要在WHERE子句中添加任何时间相关的条件。
+                                3. 不要使用函数来计算日期范围。
+                                4. 如果查询涉及到复杂的嵌套聚合操作，请考虑使用`WITH AS`语句创建公共表表达式(CTE)以提高代码可读性和维护性。
+                                5. 使用`AS`关键字定义别名时，请确保这些别名与原始问题中的术语保持一致，并且易于理解。
+                                6. 在编写SQL语句时，请遵循良好的编码实践，比如适当添加注释、合理命名变量等。
+                                
+                                # 示例: {{exemplar}}
+                                
+                                # 查询:
+                                - 问题: {{question}}
+                                - 表结构映射: {{schema}}
+                                - 其他相关信息: {{information}}\s
+                                
+                                请根据上述要求生成对应的SQL查询语句。
+                                """))
+                .build());
     }
 
     @Data

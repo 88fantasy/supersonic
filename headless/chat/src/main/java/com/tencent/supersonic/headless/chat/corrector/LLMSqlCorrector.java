@@ -10,6 +10,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.output.structured.Description;
+import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.ModelProvider;
 import dev.langchain4j.service.AiServices;
 import lombok.Data;
@@ -40,7 +41,21 @@ public class LLMSqlCorrector extends BaseSemanticCorrector {
 
     public LLMSqlCorrector() {
         ChatAppManager.register(APP_KEY, ChatApp.builder().prompt(INSTRUCTION).name("语义SQL修正")
-                .appModule(AppModule.CHAT).description("通过大模型对解析S2SQL做二次修正").enable(false).build());
+                .appModule(AppModule.CHAT).description("通过大模型对解析S2SQL做二次修正").enable(false)
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
+                                # 角色: 你是一名在编写SQL方面拥有丰富经验的高级数据工程师。
+                                # 任务: 审查由初级工程师提供的问题和SQL代码，并根据需要进行修正或提出改进建议。
+                                # 规则:
+                                1. 在指定时间范围时，请始终使用`>`、`<`、`>=`、`<=`操作符。
+                                2. 避免使用函数来计算日期范围。
+                                3. 确保所有引用的列名及值域都在`#表结构映射`中有所提及。
+                                4. 如果可能的话，尝试通过使用`WITH AS`语句（即CTE）来分解复杂的SQL查询，以提高可读性和维护性。
+                                # 提供的问题: {{question}}
+                                # 表结构映射: {{schema}}
+                                # 待审查的SQL代码: {{sql}}
+                                # 回应:
+                                """))
+                .build());
     }
 
     @Data

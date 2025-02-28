@@ -42,6 +42,13 @@ export type AgentConfigType = {
   tools: AgentToolType[];
 };
 
+export type ChatModel = {
+  id: number;
+  name: string;
+  description: string;
+  config: LlmConfigType;
+};
+
 export type LlmConfigType = {
   provider: string;
   baseUrl: string;
@@ -78,6 +85,7 @@ export type ChatAppConfigItem = {
   prompt: string;
   enable: boolean;
   chatModelId: number;
+  providerPrompts?: Record<string, string>;
 };
 
 export type ChatAppConfig = Record<string, ChatAppConfigItem>;

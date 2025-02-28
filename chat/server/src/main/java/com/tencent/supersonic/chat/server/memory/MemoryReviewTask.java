@@ -16,6 +16,7 @@ import com.tencent.supersonic.headless.server.utils.ModelConfigHelper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.ModelProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,7 +59,20 @@ public class MemoryReviewTask {
     public MemoryReviewTask() {
         ChatAppManager.register(APP_KEY,
                 ChatApp.builder().prompt(INSTRUCTION).name("记忆启用评估").appModule(AppModule.CHAT)
-                        .description("通过大模型对记忆做正确性评估以决定是否启用").enable(false).build());
+                        .description("通过大模型对记忆做正确性评估以决定是否启用").enable(false)
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
+                                # 角色: 你是一名在编写SQL方面拥有丰富经验的高级数据工程师。
+                                # 任务: 审查由初级工程师编写的用户问题及对应的SQL语句，并基于此提供专业建议。
+                                # 规则:
+                                1. 请按照`opinion=(POSITIVE|NEGATIVE),comment=(你的具体反馈)`这样的格式给出评价。
+                                2. 在审查过程中，可以忽略日期条件相关的检查点，因为这部分通常不是初级工程师容易出错的地方。
+                                # 用户提出的问题: {{question}}
+                                # 相关表结构描述: {{table_structure}}
+                                # 其他可能有用的背景信息: {{additional_info}}
+                                # 待审核的SQL代码: {{sql_code}}
+                                # 你的反馈:
+                                """))
+                        .build());
     }
 
     @Scheduled(fixedDelay = 60 * 1000)

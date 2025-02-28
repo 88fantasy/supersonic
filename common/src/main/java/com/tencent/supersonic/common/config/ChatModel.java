@@ -13,7 +13,7 @@ public class ChatModel {
 
     private String description;
 
-    private ChatModelConfig Config;
+    private ChatModelConfig config;
 
     private Date createdAt;
 

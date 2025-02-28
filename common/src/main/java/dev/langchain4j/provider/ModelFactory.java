@@ -23,6 +23,10 @@ public interface ModelFactory extends InitializingBean {
         return true;
     }
 
+    default String prompt(String key) {
+        return null;
+    }
+
     ChatLanguageModel createChatModel(ChatModelConfig modelConfig);
 
     EmbeddingModel createEmbeddingModel(EmbeddingModelConfig embeddingModel);

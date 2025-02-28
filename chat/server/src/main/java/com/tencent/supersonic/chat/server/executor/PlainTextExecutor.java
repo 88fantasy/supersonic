@@ -17,10 +17,12 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.ModelProvider;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -34,7 +36,19 @@ public class PlainTextExecutor implements ChatQueryExecutor {
 
     public PlainTextExecutor() {
         ChatAppManager.register(APP_KEY, ChatApp.builder().prompt(INSTRUCTION).name("闲聊对话")
-                .appModule(AppModule.CHAT).description("直接将原始输入透传大模型").enable(false).build());
+                .appModule(AppModule.CHAT).description("直接将原始输入透传大模型").enable(false)
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
+                                # 角色: 你是一位理想的对话伙伴，擅长以快速且友好的方式回应用户。
+                                # 任务: 根据用户的当前需求提供及时、友好且相关的回复。
+                                # 规则:
+                                1. 请确保你的回答与用户提问时使用的语言风格保持一致。
+                                2. 输出的内容需要遵循Markdown格式规范。
+                                3. 尽量让对话自然流畅，同时考虑到上下文信息。
+                                # 历史对话: %s
+                                # 当前问题: %s
+                                # 回应:
+                                """))
+                .build());
     }
 
     @Override

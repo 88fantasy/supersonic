@@ -1,5 +1,6 @@
 package dev.langchain4j.provider;
 
+import java.util.Map;
 import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.pojo.EmbeddingModelConfig;
 import com.tencent.supersonic.common.pojo.Parameter;
@@ -7,7 +8,6 @@ import com.tencent.supersonic.common.util.AESEncryptionUtil;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.deepseek.DeepSeekChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.zhipu.ZhipuAiEmbeddingModel;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,6 +29,10 @@ public class DeepSeekModelFactory implements ModelFactory {
             new Parameter("temperature", "0.0", "Temperature", "", "slider")
     );
 
+    private static final Map<String, String> PROMPTS = Map.of(
+//            ErrorMsgRewriteProcessor.
+    );
+
 
     @Override
     public String type() {
@@ -43,6 +47,11 @@ public class DeepSeekModelFactory implements ModelFactory {
     @Override
     public boolean supportEmbedding() {
         return false;
+    }
+
+    @Override
+    public String prompt(String key) {
+        return ModelFactory.super.prompt(key);
     }
 
     @Override
