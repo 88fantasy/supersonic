@@ -60,11 +60,6 @@ com.tencent.supersonic.chat.server.parser.ChatQueryParser=\
     com.tencent.supersonic.chat.server.parser.NL2SQLParser,\
     com.tencent.supersonic.chat.server.parser.PlainTextParser
 
-com.tencent.supersonic.chat.server.executor.ChatQueryExecutor=\
-    com.tencent.supersonic.chat.server.executor.PluginExecutor, \
-    com.tencent.supersonic.chat.server.executor.SqlExecutor,\
-    com.tencent.supersonic.chat.server.executor.PlainTextExecutor
-
 com.tencent.supersonic.chat.server.plugin.recognize.PluginRecognizer=\
     com.tencent.supersonic.chat.server.plugin.recognize.embedding.EmbeddingRecallRecognizer
 
@@ -74,11 +69,6 @@ com.tencent.supersonic.chat.server.processor.parse.ParseResultProcessor=\
     com.tencent.supersonic.chat.server.processor.parse.ErrorMsgRewriteProcessor,\
     com.tencent.supersonic.chat.server.processor.parse.ParseInfoFormatProcessor
 
-com.tencent.supersonic.chat.server.processor.execute.ExecuteResultProcessor=\
-    com.tencent.supersonic.chat.server.processor.execute.MetricRecommendProcessor,\
-    com.tencent.supersonic.chat.server.processor.execute.DimensionRecommendProcessor,\
-    com.tencent.supersonic.chat.server.processor.execute.MetricRatioCalcProcessor,\
-    com.tencent.supersonic.chat.server.processor.execute.DataInterpretProcessor
 
 ### auth-authentication SPIs
 

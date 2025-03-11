@@ -17,20 +17,28 @@ import com.tencent.supersonic.headless.api.pojo.response.QueryState;
 import com.tencent.supersonic.headless.api.pojo.response.SemanticQueryResp;
 import com.tencent.supersonic.headless.chat.query.llm.s2sql.LLMSqlQuery;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
+import com.yomahub.liteflow.annotation.LiteflowComponent;
+import com.yomahub.liteflow.core.NodeComponent;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Date;
 import java.util.Objects;
 
-public class SqlExecutor implements ChatQueryExecutor {
+@LiteflowComponent(SqlExecutor.NODE_NAME)
+public class SqlExecutor extends NodeComponent {
 
-    @SneakyThrows
+    public static final String NODE_NAME = "SqlExecutor";
+
     @Override
-    public QueryResult execute(ExecuteContext executeContext) {
-        QueryResult queryResult = doExecute(executeContext);
+    public void process() throws Exception {
+        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+        SemanticParseInfo parseInfo = executeContext.getParseInfo();
+        if (!executeContext.hasResponse() && !Objects.isNull(parseInfo.getSqlInfo())
+                && !StringUtils.isBlank(parseInfo.getSqlInfo().getCorrectedS2SQL())) {
 
-        if (queryResult != null) {
+            QueryResult queryResult = doExecute(executeContext);
+
             String textResult = ResultFormatter.transform2TextNew(queryResult.getQueryColumns(),
                     queryResult.getQueryResults());
             queryResult.setTextResult(textResult);
@@ -52,9 +60,8 @@ public class SqlExecutor implements ChatQueryExecutor {
                         .updatedBy(executeContext.getRequest().getUser().getName())
                         .createdAt(new Date()).build());
             }
+            executeContext.setResponse(queryResult);
         }
-
-        return queryResult;
     }
 
     @SneakyThrows
@@ -65,10 +72,6 @@ public class SqlExecutor implements ChatQueryExecutor {
         ChatContext chatCtx =
                 chatContextService.getOrCreateContext(executeContext.getRequest().getChatId());
         SemanticParseInfo parseInfo = executeContext.getParseInfo();
-        if (Objects.isNull(parseInfo.getSqlInfo())
-                || StringUtils.isBlank(parseInfo.getSqlInfo().getCorrectedS2SQL())) {
-            return null;
-        }
 
         QuerySqlReq sqlReq =
                 QuerySqlReq.builder().sql(parseInfo.getSqlInfo().getCorrectedS2SQL()).build();
@@ -98,4 +101,6 @@ public class SqlExecutor implements ChatQueryExecutor {
 
         return queryResult;
     }
+
+
 }

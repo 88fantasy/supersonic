@@ -23,7 +23,7 @@ public interface DeepSeekApi {
     @POST("chat/completions")
     @Headers("Content-Type: application/json")
     Call<ChatCompletionResponse> chatCompletions(@HeaderMap Map<String, String> headers,
-                                                 @Body ChatCompletionRequest request);
+            @Body ChatCompletionRequest request);
 
     @GET("models")
     @Headers("Content-Type: application/json")

@@ -6,6 +6,8 @@ import com.tencent.supersonic.chat.server.agent.Agent;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
 import lombok.Data;
 
+import java.util.Objects;
+
 @Data
 public class ExecuteContext {
     private ChatExecuteReq request;
@@ -15,5 +17,9 @@ public class ExecuteContext {
 
     public ExecuteContext(ChatExecuteReq request) {
         this.request = request;
+    }
+
+    public boolean hasResponse() {
+        return Objects.nonNull(response);
     }
 }

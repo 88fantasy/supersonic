@@ -4,20 +4,20 @@ import lombok.Getter;
 
 public enum ChatCompletionModel {
 
-	DEEPSEEK_CHAT("deepseek-chat"), //
-	// alias
-	DEEPSEEK_REASONER("deepseek-reasoner");
+    DEEPSEEK_CHAT("deepseek-chat"), //
+    // alias
+    DEEPSEEK_REASONER("deepseek-reasoner");
 
-	@Getter
-	private final String value;
+    @Getter
+    private final String value;
 
-	ChatCompletionModel(String value) {
-		this.value = value;
-	}
+    ChatCompletionModel(String value) {
+        this.value = value;
+    }
 
-	@Override
-	public String toString() {
-		return value;
-	}
+    @Override
+    public String toString() {
+        return value;
+    }
 
 }

@@ -66,9 +66,7 @@ import static java.util.stream.Collectors.toList;
 public class InternalDeepSeekHelper {
 
     public static List<Message> toDeepSeekMessages(List<ChatMessage> messages) {
-        return messages.stream()
-                .map(InternalDeepSeekHelper::toDeepSeekMessage)
-                .collect(toList());
+        return messages.stream().map(InternalDeepSeekHelper::toDeepSeekMessage).collect(toList());
     }
 
     public static Message toDeepSeekMessage(ChatMessage message) {
@@ -80,16 +78,12 @@ public class InternalDeepSeekHelper {
 
             if (userMessage.hasSingleText()) {
                 return dev.ai4j.deepseek4j.chat.UserMessage.builder()
-                        .content(userMessage.singleText())
-                        .name(userMessage.name())
-                        .build();
+                        .content(userMessage.singleText()).name(userMessage.name()).build();
             } else {
                 return dev.ai4j.deepseek4j.chat.UserMessage.builder()
                         .content(userMessage.contents().stream()
-                                .map(InternalDeepSeekHelper::toDeepSeekContent)
-                                .collect(toList()))
-                        .name(userMessage.name())
-                        .build();
+                                .map(InternalDeepSeekHelper::toDeepSeekContent).collect(toList()))
+                        .name(userMessage.name()).build();
             }
         }
 
@@ -101,39 +95,31 @@ public class InternalDeepSeekHelper {
 
             ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
             if (toolExecutionRequest.id() == null) {
-                FunctionCall functionCall = FunctionCall.builder()
-                        .name(toolExecutionRequest.name())
-                        .arguments(toolExecutionRequest.arguments())
-                        .build();
+                FunctionCall functionCall = FunctionCall.builder().name(toolExecutionRequest.name())
+                        .arguments(toolExecutionRequest.arguments()).build();
 
                 return AssistantMessage.builder()
-//                        .functionCall(functionCall)
+                        // .functionCall(functionCall)
                         .build();
             }
 
             List<ToolCall> toolCalls = aiMessage.toolExecutionRequests().stream()
-                    .map(it -> ToolCall.builder()
-                            .id(it.id())
-                            .type(FUNCTION)
-                            .function(FunctionCall.builder()
-                                    .name(it.name())
-                                    .arguments(it.arguments())
-                                    .build())
-                            .build())
+                    .map(it -> ToolCall.builder().id(it.id()).type(FUNCTION).function(FunctionCall
+                            .builder().name(it.name()).arguments(it.arguments()).build()).build())
                     .collect(toList());
 
-            return AssistantMessage.builder()
-                    .toolCalls(toolCalls)
-                    .build();
+            return AssistantMessage.builder().toolCalls(toolCalls).build();
         }
 
         if (message instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
 
             if (toolExecutionResultMessage.id() == null) {
-                return FunctionMessage.from(toolExecutionResultMessage.toolName(), toolExecutionResultMessage.text());
+                return FunctionMessage.from(toolExecutionResultMessage.toolName(),
+                        toolExecutionResultMessage.text());
             }
 
-            return ToolMessage.from(toolExecutionResultMessage.id(), toolExecutionResultMessage.text());
+            return ToolMessage.from(toolExecutionResultMessage.id(),
+                    toolExecutionResultMessage.text());
         }
 
         throw illegalArgument("Unknown message type: " + message.type());
@@ -150,10 +136,8 @@ public class InternalDeepSeekHelper {
     }
 
     private static dev.ai4j.deepseek4j.chat.Content toDeepSeekContent(TextContent content) {
-        return dev.ai4j.deepseek4j.chat.Content.builder()
-                .type(ContentType.TEXT)
-                .text(content.text())
-                .build();
+        return dev.ai4j.deepseek4j.chat.Content.builder().type(ContentType.TEXT)
+                .text(content.text()).build();
     }
 
 
@@ -164,15 +148,15 @@ public class InternalDeepSeekHelper {
         return format("data:%s;base64,%s", image.mimeType(), image.base64Data());
     }
 
-    public static List<Tool> toTools(Collection<ToolSpecification> toolSpecifications, boolean strict) {
+    public static List<Tool> toTools(Collection<ToolSpecification> toolSpecifications,
+            boolean strict) {
         return toolSpecifications.stream()
                 .map((ToolSpecification toolSpecification) -> toTool(toolSpecification, strict))
                 .collect(toList());
     }
 
     private static Tool toTool(ToolSpecification toolSpecification, boolean strict) {
-        Function.Builder functionBuilder = Function.builder()
-                .name(toolSpecification.name())
+        Function.Builder functionBuilder = Function.builder().name(toolSpecification.name())
                 .description(toolSpecification.description())
                 .parameters(toDeepSeekParameters(toolSpecification.parameters(), strict));
         if (strict) {
@@ -183,30 +167,31 @@ public class InternalDeepSeekHelper {
     }
 
     /**
-     * @deprecated Functions are deprecated by OpenAI, use {@link #toTools(Collection, boolean)} instead
+     * @deprecated Functions are deprecated by OpenAI, use {@link #toTools(Collection, boolean)}
+     *             instead
      */
     @Deprecated
     public static List<Function> toFunctions(Collection<ToolSpecification> toolSpecifications) {
-        return toolSpecifications.stream()
-                .map(InternalDeepSeekHelper::toFunction)
+        return toolSpecifications.stream().map(InternalDeepSeekHelper::toFunction)
                 .collect(toList());
     }
 
     /**
-     * @deprecated Functions are deprecated by OpenAI, use {@link #toTool(ToolSpecification, boolean)} instead
+     * @deprecated Functions are deprecated by OpenAI, use
+     *             {@link #toTool(ToolSpecification, boolean)} instead
      */
     @Deprecated
     private static Function toFunction(ToolSpecification toolSpecification) {
-        return Function.builder()
-                .name(toolSpecification.name())
+        return Function.builder().name(toolSpecification.name())
                 .description(toolSpecification.description())
-                .parameters(toDeepSeekParameters(toolSpecification.parameters(), false))
-                .build();
+                .parameters(toDeepSeekParameters(toolSpecification.parameters(), false)).build();
     }
 
-    private static dev.ai4j.deepseek4j.chat.JsonObjectSchema toDeepSeekParameters(ToolParameters toolParameters, boolean strict) {
+    private static dev.ai4j.deepseek4j.chat.JsonObjectSchema toDeepSeekParameters(
+            ToolParameters toolParameters, boolean strict) {
         if (toolParameters == null) {
-            dev.ai4j.deepseek4j.chat.JsonObjectSchema.Builder builder = dev.ai4j.deepseek4j.chat.JsonObjectSchema.builder();
+            dev.ai4j.deepseek4j.chat.JsonObjectSchema.Builder builder =
+                    dev.ai4j.deepseek4j.chat.JsonObjectSchema.builder();
             if (strict) {
                 // when strict, additionalProperties must be false:
                 // https://platform.openai.com/docs/guides/structured-outputs/additionalproperties-false-must-always-be-set-in-objects
@@ -215,9 +200,10 @@ public class InternalDeepSeekHelper {
             return builder.build();
         }
 
-        dev.ai4j.deepseek4j.chat.JsonObjectSchema.Builder builder = dev.ai4j.deepseek4j.chat.JsonObjectSchema.builder()
-                .properties(toDeepSeekProperties(toolParameters.properties(), strict))
-                .required(toolParameters.required());
+        dev.ai4j.deepseek4j.chat.JsonObjectSchema.Builder builder =
+                dev.ai4j.deepseek4j.chat.JsonObjectSchema.builder()
+                        .properties(toDeepSeekProperties(toolParameters.properties(), strict))
+                        .required(toolParameters.required());
         if (strict) {
             builder
                     // when strict, all fields must be required:
@@ -230,22 +216,26 @@ public class InternalDeepSeekHelper {
         return builder.build();
     }
 
-    private static Map<String, JsonSchemaElement> toDeepSeekProperties(Map<String, ?> properties, boolean strict) {
-        Map<String, dev.ai4j.deepseek4j.chat.JsonSchemaElement> openAiProperties = new LinkedHashMap<>();
-        properties.forEach((key, value) ->
-                openAiProperties.put(key, toDeepSeekJsonSchemaElement((Map<String, ?>) value, strict)));
+    private static Map<String, JsonSchemaElement> toDeepSeekProperties(Map<String, ?> properties,
+            boolean strict) {
+        Map<String, dev.ai4j.deepseek4j.chat.JsonSchemaElement> openAiProperties =
+                new LinkedHashMap<>();
+        properties.forEach((key, value) -> openAiProperties.put(key,
+                toDeepSeekJsonSchemaElement((Map<String, ?>) value, strict)));
         return openAiProperties;
     }
 
-    private static dev.ai4j.deepseek4j.chat.JsonSchemaElement toDeepSeekJsonSchemaElement(Map<String, ?> properties, boolean strict) {
+    private static dev.ai4j.deepseek4j.chat.JsonSchemaElement toDeepSeekJsonSchemaElement(
+            Map<String, ?> properties, boolean strict) {
         // TODO rewrite when JsonSchemaElement will be used for ToolSpecification.properties
         Object type = properties.get("type");
         String description = (String) properties.get("description");
         if ("object".equals(type)) {
             List<String> required = (List<String>) properties.get("required");
-            dev.ai4j.deepseek4j.chat.JsonObjectSchema.Builder builder = dev.ai4j.deepseek4j.chat.JsonObjectSchema.builder()
-                    .description(description)
-                    .properties(toDeepSeekProperties((Map<String, ?>) properties.get("properties"), strict));
+            dev.ai4j.deepseek4j.chat.JsonObjectSchema.Builder builder =
+                    dev.ai4j.deepseek4j.chat.JsonObjectSchema.builder().description(description)
+                            .properties(toDeepSeekProperties(
+                                    (Map<String, ?>) properties.get("properties"), strict));
             if (required != null) {
                 builder.required(required);
             }
@@ -253,37 +243,32 @@ public class InternalDeepSeekHelper {
                 builder
                         // when strict, all fields must be required:
                         // https://platform.openai.com/docs/guides/structured-outputs/all-fields-must-be-required
-                        .required(new ArrayList<>(((Map<String, ?>) properties.get("properties")).keySet()))
+                        .required(new ArrayList<>(
+                                ((Map<String, ?>) properties.get("properties")).keySet()))
                         // when strict, additionalProperties must be false:
                         // https://platform.openai.com/docs/guides/structured-outputs/additionalproperties-false-must-always-be-set-in-objects
                         .additionalProperties(false);
             }
             return builder.build();
         } else if ("array".equals(type)) {
-            return dev.ai4j.deepseek4j.chat.JsonArraySchema.builder()
-                    .description(description)
-                    .items(toDeepSeekJsonSchemaElement((Map<String, ?>) properties.get("items"), strict))
+            return dev.ai4j.deepseek4j.chat.JsonArraySchema.builder().description(description)
+                    .items(toDeepSeekJsonSchemaElement((Map<String, ?>) properties.get("items"),
+                            strict))
                     .build();
         } else if (properties.get("enum") != null) {
-            return dev.ai4j.deepseek4j.chat.JsonEnumSchema.builder()
-                    .description(description)
-                    .enumValues((List<String>) properties.get("enum"))
-                    .build();
+            return dev.ai4j.deepseek4j.chat.JsonEnumSchema.builder().description(description)
+                    .enumValues((List<String>) properties.get("enum")).build();
         } else if ("string".equals(type)) {
-            return dev.ai4j.deepseek4j.chat.JsonStringSchema.builder()
-                    .description(description)
+            return dev.ai4j.deepseek4j.chat.JsonStringSchema.builder().description(description)
                     .build();
         } else if ("integer".equals(type)) {
-            return dev.ai4j.deepseek4j.chat.JsonIntegerSchema.builder()
-                    .description(description)
+            return dev.ai4j.deepseek4j.chat.JsonIntegerSchema.builder().description(description)
                     .build();
         } else if ("number".equals(type)) {
-            return dev.ai4j.deepseek4j.chat.JsonNumberSchema.builder()
-                    .description(description)
+            return dev.ai4j.deepseek4j.chat.JsonNumberSchema.builder().description(description)
                     .build();
         } else if ("boolean".equals(type)) {
-            return dev.ai4j.deepseek4j.chat.JsonBooleanSchema.builder()
-                    .description(description)
+            return dev.ai4j.deepseek4j.chat.JsonBooleanSchema.builder().description(description)
                     .build();
         } else {
             throw new IllegalArgumentException("Unknown type " + type);
@@ -294,16 +279,16 @@ public class InternalDeepSeekHelper {
         CustomAiMessage customAiMessage;
         AssistantMessage assistantMessage = response.choices().get(0).message();
         String text = assistantMessage.content();
-        Map<String, Object> attributes = Map.of("reasoningContent", assistantMessage.reasoningContent());
+        Map<String, Object> attributes =
+                Map.of("reasoningContent", assistantMessage.reasoningContent());
         List<ToolCall> toolCalls = assistantMessage.toolCalls();
         if (!isNullOrEmpty(toolCalls)) {
-            List<ToolExecutionRequest> toolExecutionRequests = toolCalls.stream()
-                    .filter(toolCall -> toolCall.type() == ToolType.FUNCTION)
-                    .map(InternalDeepSeekHelper::toToolExecutionRequest)
-                    .collect(toList());
-            customAiMessage = isNullOrBlank(text) ?
-                    new CustomAiMessage(toolExecutionRequests, attributes) :
-                    new CustomAiMessage(text, toolExecutionRequests, attributes);
+            List<ToolExecutionRequest> toolExecutionRequests =
+                    toolCalls.stream().filter(toolCall -> toolCall.type() == ToolType.FUNCTION)
+                            .map(InternalDeepSeekHelper::toToolExecutionRequest).collect(toList());
+            customAiMessage =
+                    isNullOrBlank(text) ? new CustomAiMessage(toolExecutionRequests, attributes)
+                            : new CustomAiMessage(text, toolExecutionRequests, attributes);
         } else {
             customAiMessage = new CustomAiMessage(text, attributes);
         }
@@ -313,22 +298,16 @@ public class InternalDeepSeekHelper {
 
     private static ToolExecutionRequest toToolExecutionRequest(ToolCall toolCall) {
         FunctionCall functionCall = toolCall.function();
-        return ToolExecutionRequest.builder()
-                .id(toolCall.id())
-                .name(functionCall.name())
-                .arguments(functionCall.arguments())
-                .build();
+        return ToolExecutionRequest.builder().id(toolCall.id()).name(functionCall.name())
+                .arguments(functionCall.arguments()).build();
     }
 
     public static TokenUsage tokenUsageFrom(Usage openAiUsage) {
         if (openAiUsage == null) {
             return null;
         }
-        return new TokenUsage(
-                openAiUsage.promptTokens(),
-                openAiUsage.completionTokens(),
-                openAiUsage.totalTokens()
-        );
+        return new TokenUsage(openAiUsage.promptTokens(), openAiUsage.completionTokens(),
+                openAiUsage.totalTokens());
     }
 
     public static FinishReason finishReasonFrom(String openAiFinishReason) {
@@ -351,96 +330,86 @@ public class InternalDeepSeekHelper {
     }
 
     static ChatModelRequest createModelListenerRequest(ChatCompletionRequest request,
-                                                       List<ChatMessage> messages,
-                                                       List<ToolSpecification> toolSpecifications) {
-        return ChatModelRequest.builder()
-                .model(request.model())
-                .temperature(request.temperature())
-                .topP(request.topP())
-                .maxTokens(request.maxTokens())
-                .messages(messages)
-                .toolSpecifications(toolSpecifications)
-                .build();
+            List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
+        return ChatModelRequest.builder().model(request.model()).temperature(request.temperature())
+                .topP(request.topP()).maxTokens(request.maxTokens()).messages(messages)
+                .toolSpecifications(toolSpecifications).build();
     }
 
-    static ChatModelResponse createModelListenerResponse(String responseId,
-                                                         String responseModel,
-                                                         Response<AiMessage> response) {
+    static ChatModelResponse createModelListenerResponse(String responseId, String responseModel,
+            Response<AiMessage> response) {
         if (response == null) {
             return null;
         }
 
-        return ChatModelResponse.builder()
-                .id(responseId)
-                .model(responseModel)
-                .tokenUsage(response.tokenUsage())
-                .finishReason(response.finishReason())
-                .aiMessage(response.content())
-                .build();
+        return ChatModelResponse.builder().id(responseId).model(responseModel)
+                .tokenUsage(response.tokenUsage()).finishReason(response.finishReason())
+                .aiMessage(response.content()).build();
     }
 
-    static dev.ai4j.deepseek4j.chat.ResponseFormat toDeepSeekResponseFormat(ResponseFormat responseFormat, Boolean strict) {
+    static dev.ai4j.deepseek4j.chat.ResponseFormat toDeepSeekResponseFormat(
+            ResponseFormat responseFormat, Boolean strict) {
         if (responseFormat == null || responseFormat.type() == TEXT) {
             return null;
         }
 
         JsonSchema jsonSchema = responseFormat.jsonSchema();
         if (jsonSchema == null) {
-            return dev.ai4j.deepseek4j.chat.ResponseFormat.builder()
-                    .type(JSON_OBJECT)
-                    .build();
+            return dev.ai4j.deepseek4j.chat.ResponseFormat.builder().type(JSON_OBJECT).build();
         } else {
             if (!(jsonSchema.rootElement() instanceof JsonObjectSchema)) {
-                throw new IllegalArgumentException("For OpenAI, the root element of the JSON Schema must be a JsonObjectSchema, but it was: " + jsonSchema.rootElement().getClass());
+                throw new IllegalArgumentException(
+                        "For OpenAI, the root element of the JSON Schema must be a JsonObjectSchema, but it was: "
+                                + jsonSchema.rootElement().getClass());
             }
-            dev.ai4j.deepseek4j.chat.JsonSchema openAiJsonSchema = dev.ai4j.deepseek4j.chat.JsonSchema.builder()
-                    .name(jsonSchema.name())
-                    .strict(strict)
-                    .schema((dev.ai4j.deepseek4j.chat.JsonObjectSchema) toDeepSeekJsonSchemaElement(jsonSchema.rootElement()))
-                    .build();
-            return dev.ai4j.deepseek4j.chat.ResponseFormat.builder()
-                    .type(JSON_SCHEMA)
-                    .jsonSchema(openAiJsonSchema)
-                    .build();
+            dev.ai4j.deepseek4j.chat.JsonSchema openAiJsonSchema =
+                    dev.ai4j.deepseek4j.chat.JsonSchema.builder().name(jsonSchema.name())
+                            .strict(strict)
+                            .schema((dev.ai4j.deepseek4j.chat.JsonObjectSchema) toDeepSeekJsonSchemaElement(
+                                    jsonSchema.rootElement()))
+                            .build();
+            return dev.ai4j.deepseek4j.chat.ResponseFormat.builder().type(JSON_SCHEMA)
+                    .jsonSchema(openAiJsonSchema).build();
         }
     }
 
-    private static dev.ai4j.deepseek4j.chat.JsonSchemaElement toDeepSeekJsonSchemaElement(dev.langchain4j.model.chat.request.json.JsonSchemaElement jsonSchemaElement) {
+    private static dev.ai4j.deepseek4j.chat.JsonSchemaElement toDeepSeekJsonSchemaElement(
+            dev.langchain4j.model.chat.request.json.JsonSchemaElement jsonSchemaElement) {
         if (jsonSchemaElement instanceof JsonStringSchema) {
             return dev.ai4j.deepseek4j.chat.JsonStringSchema.builder()
-                    .description(((JsonStringSchema) jsonSchemaElement).description())
-                    .build();
+                    .description(((JsonStringSchema) jsonSchemaElement).description()).build();
         } else if (jsonSchemaElement instanceof JsonIntegerSchema) {
             return dev.ai4j.deepseek4j.chat.JsonIntegerSchema.builder()
-                    .description(((JsonIntegerSchema) jsonSchemaElement).description())
-                    .build();
+                    .description(((JsonIntegerSchema) jsonSchemaElement).description()).build();
         } else if (jsonSchemaElement instanceof JsonNumberSchema) {
             return dev.ai4j.deepseek4j.chat.JsonNumberSchema.builder()
-                    .description(((JsonNumberSchema) jsonSchemaElement).description())
-                    .build();
+                    .description(((JsonNumberSchema) jsonSchemaElement).description()).build();
         } else if (jsonSchemaElement instanceof JsonBooleanSchema) {
             return dev.ai4j.deepseek4j.chat.JsonBooleanSchema.builder()
-                    .description(((JsonBooleanSchema) jsonSchemaElement).description())
-                    .build();
+                    .description(((JsonBooleanSchema) jsonSchemaElement).description()).build();
         } else if (jsonSchemaElement instanceof JsonEnumSchema) {
             return dev.ai4j.deepseek4j.chat.JsonEnumSchema.builder()
                     .description(((JsonEnumSchema) jsonSchemaElement).description())
-                    .enumValues(((JsonEnumSchema) jsonSchemaElement).enumValues())
-                    .build();
+                    .enumValues(((JsonEnumSchema) jsonSchemaElement).enumValues()).build();
         } else if (jsonSchemaElement instanceof JsonArraySchema) {
             return dev.ai4j.deepseek4j.chat.JsonArraySchema.builder()
                     .description(((JsonArraySchema) jsonSchemaElement).description())
-                    .items(toDeepSeekJsonSchemaElement(((JsonArraySchema) jsonSchemaElement).items()))
+                    .items(toDeepSeekJsonSchemaElement(
+                            ((JsonArraySchema) jsonSchemaElement).items()))
                     .build();
         } else if (jsonSchemaElement instanceof JsonObjectSchema) {
-            Map<String, dev.langchain4j.model.chat.request.json.JsonSchemaElement> properties = ((JsonObjectSchema) jsonSchemaElement).properties();
-            Map<String, dev.ai4j.deepseek4j.chat.JsonSchemaElement> openAiProperties = new LinkedHashMap<>();
-            properties.forEach((key, value) -> openAiProperties.put(key, toDeepSeekJsonSchemaElement(value)));
+            Map<String, dev.langchain4j.model.chat.request.json.JsonSchemaElement> properties =
+                    ((JsonObjectSchema) jsonSchemaElement).properties();
+            Map<String, dev.ai4j.deepseek4j.chat.JsonSchemaElement> openAiProperties =
+                    new LinkedHashMap<>();
+            properties.forEach(
+                    (key, value) -> openAiProperties.put(key, toDeepSeekJsonSchemaElement(value)));
             return dev.ai4j.deepseek4j.chat.JsonObjectSchema.builder()
                     .description(((JsonObjectSchema) jsonSchemaElement).description())
                     .properties(openAiProperties)
                     .required(((JsonObjectSchema) jsonSchemaElement).required())
-                    .additionalProperties(((JsonObjectSchema) jsonSchemaElement).additionalProperties())
+                    .additionalProperties(
+                            ((JsonObjectSchema) jsonSchemaElement).additionalProperties())
                     .build();
         } else {
             throw new IllegalArgumentException("Unknown type: " + jsonSchemaElement);

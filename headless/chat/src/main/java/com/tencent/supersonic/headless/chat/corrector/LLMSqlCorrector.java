@@ -40,8 +40,9 @@ public class LLMSqlCorrector extends BaseSemanticCorrector {
             + "\n#Question:{{question}} #Schema:{{schema}} #InputSQL:{{sql}} #Response:";
 
     public LLMSqlCorrector() {
-        ChatAppManager.register(APP_KEY, ChatApp.builder().prompt(INSTRUCTION).name("语义SQL修正")
-                .appModule(AppModule.CHAT).description("通过大模型对解析S2SQL做二次修正").enable(false)
+        ChatAppManager.register(APP_KEY,
+                ChatApp.builder().prompt(INSTRUCTION).name("语义SQL修正").appModule(AppModule.CHAT)
+                        .description("通过大模型对解析S2SQL做二次修正").enable(false)
                         .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
                                 # 角色: 你是一名在编写SQL方面拥有丰富经验的高级数据工程师。
                                 # 任务: 审查由初级工程师提供的问题和SQL代码，并根据需要进行修正或提出改进建议。
@@ -54,8 +55,7 @@ public class LLMSqlCorrector extends BaseSemanticCorrector {
                                 # 表结构映射: {{schema}}
                                 # 待审查的SQL代码: {{sql}}
                                 # 回应:
-                                """))
-                .build());
+                                """)).build());
     }
 
     @Data

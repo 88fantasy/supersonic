@@ -58,40 +58,42 @@ public class LLMSemanticModeller implements SemanticModeller {
     private final ObjectMapper objectMapper = JsonUtil.INSTANCE.getObjectMapper();
 
     public LLMSemanticModeller() {
-        ChatAppManager.register(APP_KEY, ChatApp.builder().prompt(INSTRUCTION).name("构造数据语义模型")
-                .appModule(AppModule.HEADLESS).description("通过大模型来构造数据语义模型").enable(true)
-                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
-                                角色: 作为一名经验丰富且具备深厚建模背景的数据分析师，您需要对数据分析和数据建模有深刻的理解。您的任务是基于给定的数据库表结构信息来构建数据模型。
-                                
-                                ### 背景信息
-                                - 您将收到一个或多个数据库表结构描述，每个描述包括表名、字段名称、字段类型及字段注释。
-                                - `bizName`代表英文名称，而`Name`则指中文名称。
-                                - 如果提供了多个表结构映射（通过{{otherRelatedDBSchema}}变量），请注意识别可能存在的主键与外键关系。
-                                
-                                ### 任务要求
-                                1. **生成模型名称与描述**：根据提供的表结构信息，为每个模型创建一个合适的名称和描述，并简要描述该模型的作用。
-                                2. **字段处理**：
-                                   - 为每个字段提供一个中文名称。
-                                   - 将每个字段归类到以下五种类型之一：
-                                     - `primary_key`: 表示记录行在数据库中的唯一标识符。
-                                     - `foreign_key`: 字段值来源于另一个表的主键。
-                                     - `partition_time`: 用于表示数据仓库中数据生成的时间点。
-                                     - `dimension`: 通常为字符串类型，适用于数据分组和过滤操作。对于此类别，请不要指定聚合函数。
-                                     - `measure`: 代表数值型指标，用来量化特定方面的数据表现。对于每项度量指标，请同时定义其适用的聚合函数（例如：MAX, MIN, AVG, COUNT, SUM）。
-                                3. **附加说明**：如果发现不同表之间存在相同命名的字段，则这些字段很可能构成了主键-外键的关系，请据此调整您的分类决策。
-                                
-                                ### 输入格式
-                                - 数据库表结构: {{DBSchema}}
-                                - 其他相关表结构: {{otherRelatedDBSchema}}
-                                
-                                ### 输出格式
-                                请按照上述指示组织您的答案，并确保所有内容都清晰易懂。如果有任何假设或者特别考虑的地方，请在文档中明确指出。
-                                
-                                ### 示例
-                                {{exemplar}}
-                                
-                                """))
-                .build());
+        ChatAppManager.register(APP_KEY,
+                ChatApp.builder().prompt(INSTRUCTION).name("构造数据语义模型").appModule(AppModule.HEADLESS)
+                        .description("通过大模型来构造数据语义模型").enable(true)
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER,
+                                """
+                                        角色: 作为一名经验丰富且具备深厚建模背景的数据分析师，您需要对数据分析和数据建模有深刻的理解。您的任务是基于给定的数据库表结构信息来构建数据模型。
+
+                                        ### 背景信息
+                                        - 您将收到一个或多个数据库表结构描述，每个描述包括表名、字段名称、字段类型及字段注释。
+                                        - `bizName`代表英文名称，而`Name`则指中文名称。
+                                        - 如果提供了多个表结构映射（通过{{otherRelatedDBSchema}}变量），请注意识别可能存在的主键与外键关系。
+
+                                        ### 任务要求
+                                        1. **生成模型名称与描述**：根据提供的表结构信息，为每个模型创建一个合适的名称和描述，并简要描述该模型的作用。
+                                        2. **字段处理**：
+                                           - 为每个字段提供一个中文名称。
+                                           - 将每个字段归类到以下五种类型之一：
+                                             - `primary_key`: 表示记录行在数据库中的唯一标识符。
+                                             - `foreign_key`: 字段值来源于另一个表的主键。
+                                             - `partition_time`: 用于表示数据仓库中数据生成的时间点。
+                                             - `dimension`: 通常为字符串类型，适用于数据分组和过滤操作。对于此类别，请不要指定聚合函数。
+                                             - `measure`: 代表数值型指标，用来量化特定方面的数据表现。对于每项度量指标，请同时定义其适用的聚合函数（例如：MAX, MIN, AVG, COUNT, SUM）。
+                                        3. **附加说明**：如果发现不同表之间存在相同命名的字段，则这些字段很可能构成了主键-外键的关系，请据此调整您的分类决策。
+
+                                        ### 输入格式
+                                        - 数据库表结构: {{DBSchema}}
+                                        - 其他相关表结构: {{otherRelatedDBSchema}}
+
+                                        ### 输出格式
+                                        请按照上述指示组织您的答案，并确保所有内容都清晰易懂。如果有任何假设或者特别考虑的地方，请在文档中明确指出。
+
+                                        ### 示例
+                                        {{exemplar}}
+
+                                        """))
+                        .build());
     }
 
     interface ModelSchemaExtractor {

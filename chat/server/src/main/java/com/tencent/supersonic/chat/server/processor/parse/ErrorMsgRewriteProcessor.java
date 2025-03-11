@@ -43,26 +43,25 @@ public class ErrorMsgRewriteProcessor implements ParseResultProcessor {
                 ChatApp.builder().prompt(REWRITE_ERROR_MESSAGE_INSTRUCTION).name("异常提示改写")
                         .appModule(AppModule.CHAT).description("通过大模型将异常信息改写为更友好和引导性的提示用语")
                         .enable(true)
-                        .providerPrompts(Map.of(
-                                DeepSeekModelFactory.PROVIDER, """
+                        .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER,
+                                """
                                         # 角色：作为与业务人员紧密合作的数据业务合作伙伴。
                                         # 任务：基于用户提供的输入、系统输出以及示例，指导用户如何利用这些示例来提出更准确的问题。
                                         # 规则：
                                         1. 回复时，请确保使用与用户问题相同的语言。
                                         2. 结构化你的回答，使其易于理解且具有指导性。
-                                        
+
                                         # 用户输入: {{user_question}}
                                         # 系统输出: {{system_message}}
                                         # 示例: {{examples}}
-                                        
+
                                         # 回应指南：
-                                        
+
                                         1. **分析用户问题**：首先明确用户想要了解的具体内容或遇到的问题是什么。
                                         2. **参考系统输出**：查看系统给出的信息是否已经部分解答了用户的疑问；如果答案不完全，则需进一步引导。
                                         3. **利用示例**：通过分析给定的示例，展示如何根据具体情况构建有效的问题。解释每个示例是如何帮助获取所需信息的，并指出其中的关键点。
                                         4. **提供模板**：基于上述步骤，为用户提供一个或多个提问模板，以便他们能够更好地表述自己的需求。例如：“为了让我们更清楚地了解您的需求，请尝试这样描述您的问题：[具体问题] + [期望得到的答案类型]。”
-                                        """)
-                        )
+                                        """))
                         .build());
     }
 

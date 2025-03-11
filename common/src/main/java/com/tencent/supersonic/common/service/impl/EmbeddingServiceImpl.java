@@ -54,7 +54,8 @@ public class EmbeddingServiceImpl implements EmbeddingService {
         for (TextSegment query : queries) {
             String question = query.text();
             try {
-                EmbeddingModel embeddingModel = ModelProvider.getEmbeddingModel(embeddingModelParameterConfig.convert());
+                EmbeddingModel embeddingModel =
+                        ModelProvider.getEmbeddingModel(embeddingModelParameterConfig.convert());
                 Embedding embedding = embeddingModel.embed(question).content();
                 boolean existSegment = existSegment(embeddingStore, query, embedding);
                 if (existSegment) {

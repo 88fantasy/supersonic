@@ -18,4 +18,9 @@ public class ChatExecuteReq {
     private int parseId;
     private String queryText;
     private boolean saveAnswer;
+    private boolean stream = false;
+
+    public String getClientId() {
+        return queryId.toString();
+    }
 }

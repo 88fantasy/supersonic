@@ -37,18 +37,10 @@ public class DeepSeekClient {
 
 
     @lombok.Builder
-    public DeepSeekClient(String baseUrl,
-                          String modelName,
-                          String apiKey,
-                          Duration callTimeout,
-                          Duration connectTimeout,
-                          Duration readTimeout,
-                          Duration writeTimeout,
-                          boolean logRequests,
-                          boolean logResponses,
-                          LogLevel logLevel,
-                          boolean logStreamingResponses,
-                          Map<String, String> customHeaders) {
+    public DeepSeekClient(String baseUrl, String modelName, String apiKey, Duration callTimeout,
+            Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
+            boolean logRequests, boolean logResponses, LogLevel logLevel,
+            boolean logStreamingResponses, Map<String, String> customHeaders) {
         this.baseUrl = getOrDefault(baseUrl, "https://api.deepseek.com/");
         this.model = modelName;
 
@@ -72,20 +64,23 @@ public class DeepSeekClient {
         }
 
         if (logRequests) {
-            okHttpClientBuilder.addInterceptor(new RequestLoggingInterceptor(getOrDefault(logLevel, LogLevel.DEBUG)));
+            okHttpClientBuilder.addInterceptor(
+                    new RequestLoggingInterceptor(getOrDefault(logLevel, LogLevel.DEBUG)));
         }
 
         if (logResponses) {
-            okHttpClientBuilder.addInterceptor(new ResponseLoggingInterceptor(getOrDefault(logLevel, LogLevel.DEBUG)));
+            okHttpClientBuilder.addInterceptor(
+                    new ResponseLoggingInterceptor(getOrDefault(logLevel, LogLevel.DEBUG)));
         }
         this.logStreamingResponses = logStreamingResponses;
 
         this.okHttpClient = okHttpClientBuilder.build();
 
-        Retrofit.Builder retrofitBuilder = new Retrofit.Builder().baseUrl(baseUrl).client(okHttpClient);
+        Retrofit.Builder retrofitBuilder =
+                new Retrofit.Builder().baseUrl(baseUrl).client(okHttpClient);
 
-        retrofitBuilder.addConverterFactory(JacksonConverterFactory.create(new ObjectMapper()
-                .enable(SerializationFeature.INDENT_OUTPUT)));
+        retrofitBuilder.addConverterFactory(JacksonConverterFactory
+                .create(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)));
 
         this.deepSeekApi = retrofitBuilder.build().create(DeepSeekApi.class);
 
@@ -112,37 +107,42 @@ public class DeepSeekClient {
     }
 
 
-    public SyncOrAsyncOrStreaming<ChatCompletionResponse> chatCompletion(DeepSeekClientContext context,
-                                                                         ChatCompletionRequest request) {
+    public SyncOrAsyncOrStreaming<ChatCompletionResponse> chatCompletion(
+            DeepSeekClientContext context, ChatCompletionRequest request) {
 
         if (Objects.isNull(request.getModel())) {
             request.setModel(this.model);
         }
 
-        ChatCompletionRequest syncRequest = ChatCompletionRequest.builder().from(request).stream(false).build();
+        ChatCompletionRequest syncRequest =
+                ChatCompletionRequest.builder().from(request).stream(false).build();
 
-        return new RequestExecutor<>(deepSeekApi.chatCompletions(context.headers(), syncRequest), r -> r,
-                okHttpClient, formatUrl("chat/completions"),
-                () -> ChatCompletionRequest.builder().from(request).stream(true).build(), ChatCompletionResponse.class,
-                r -> r, logStreamingResponses);
+        return new RequestExecutor<>(deepSeekApi.chatCompletions(context.headers(), syncRequest),
+                r -> r, okHttpClient, formatUrl("chat/completions"),
+                () -> ChatCompletionRequest.builder().from(request).stream(true).build(),
+                ChatCompletionResponse.class, r -> r, logStreamingResponses);
     }
 
 
-    public SyncOrAsyncOrStreaming<String> chatCompletion(DeepSeekClientContext context, String userMessage) {
-        ChatCompletionRequest request = ChatCompletionRequest.builder().addUserMessage(userMessage).build();
+    public SyncOrAsyncOrStreaming<String> chatCompletion(DeepSeekClientContext context,
+            String userMessage) {
+        ChatCompletionRequest request =
+                ChatCompletionRequest.builder().addUserMessage(userMessage).build();
 
-        ChatCompletionRequest syncRequest = ChatCompletionRequest.builder().from(request).stream(false).build();
+        ChatCompletionRequest syncRequest =
+                ChatCompletionRequest.builder().from(request).stream(false).build();
 
         return new RequestExecutor<>(deepSeekApi.chatCompletions(context.headers(), syncRequest),
                 ChatCompletionResponse::content, okHttpClient, formatUrl("chat/completions"),
-                () -> ChatCompletionRequest.builder().from(request).stream(true).build(), ChatCompletionResponse.class,
-                r -> r.choices().get(0).delta().content(), logStreamingResponses);
+                () -> ChatCompletionRequest.builder().from(request).stream(true).build(),
+                ChatCompletionResponse.class, r -> r.choices().get(0).delta().content(),
+                logStreamingResponses);
     }
 
     public ModelsResponse models() {
 
-        return new RequestExecutor<>(this.deepSeekApi.models(new HashMap<>()), r -> r, okHttpClient, null,
-                null, ModelsResponse.class, null, logStreamingResponses).execute();
+        return new RequestExecutor<>(this.deepSeekApi.models(new HashMap<>()), r -> r, okHttpClient,
+                null, null, ModelsResponse.class, null, logStreamingResponses).execute();
     }
 
     private String formatUrl(String endpoint) {

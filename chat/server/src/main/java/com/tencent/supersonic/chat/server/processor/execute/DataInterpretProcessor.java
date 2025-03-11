@@ -6,6 +6,8 @@ import com.tencent.supersonic.chat.server.pojo.ExecuteContext;
 import com.tencent.supersonic.common.pojo.ChatApp;
 import com.tencent.supersonic.common.pojo.enums.AppModule;
 import com.tencent.supersonic.common.util.ChatAppManager;
+import com.yomahub.liteflow.annotation.LiteflowComponent;
+import com.yomahub.liteflow.core.NodeComponent;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
@@ -24,7 +26,10 @@ import java.util.Objects;
 /**
  * DataInterpretProcessor interprets query result to make it more readable to the users.
  */
-public class DataInterpretProcessor implements ExecuteResultProcessor {
+@LiteflowComponent(DataInterpretProcessor.NODE_NAME)
+public class DataInterpretProcessor extends NodeComponent implements ExecuteResultProcessor {
+
+    public static final String NODE_NAME = "DataInterpretProcessor";
 
     private static final Logger keyPipelineLog = LoggerFactory.getLogger("keyPipeline");
 
@@ -38,8 +43,9 @@ public class DataInterpretProcessor implements ExecuteResultProcessor {
             + "\n#Question:{{question}} #Data:{{data}} #Answer:";
 
     public DataInterpretProcessor() {
-        ChatAppManager.register(APP_KEY, ChatApp.builder().prompt(INSTRUCTION).name("结果数据解读")
-                .appModule(AppModule.CHAT).description("通过大模型对结果数据做提炼总结").enable(false)
+        ChatAppManager.register(APP_KEY,
+                ChatApp.builder().prompt(INSTRUCTION).name("结果数据解读").appModule(AppModule.CHAT)
+                        .description("通过大模型对结果数据做提炼总结").enable(false)
                         .providerPrompts(Map.of(DeepSeekModelFactory.PROVIDER, """
                                 #角色: 你是一名每天与业务用户沟通的数据专家。
                                 #任务: 你将收到用户提出的问题以及从数据库中查询到的相关结果数据，请解读数据并组织简短回答。
@@ -49,8 +55,15 @@ public class DataInterpretProcessor implements ExecuteResultProcessor {
                                 #问题:{{question}}
                                 #数据:{{data}}
                                 #回答:
-                                """))
-                .build());
+                                """)).build());
+    }
+
+    @Override
+    public void process() throws Exception {
+        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+        if(accept(executeContext)) {
+            process(executeContext);
+        }
     }
 
 

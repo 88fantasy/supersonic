@@ -4,6 +4,7 @@ import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.pojo.EmbeddingModelConfig;
 import com.tencent.supersonic.common.pojo.Parameter;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -26,6 +27,8 @@ public interface ModelFactory extends InitializingBean {
     default String prompt(String key) {
         return null;
     }
+
+    StreamingChatLanguageModel createStreamingChatModel(ChatModelConfig modelConfig);
 
     ChatLanguageModel createChatModel(ChatModelConfig modelConfig);
 

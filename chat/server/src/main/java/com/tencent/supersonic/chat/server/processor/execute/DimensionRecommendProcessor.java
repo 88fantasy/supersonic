@@ -11,6 +11,8 @@ import com.tencent.supersonic.headless.api.pojo.SchemaElement;
 import com.tencent.supersonic.headless.api.pojo.SchemaElementType;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
+import com.yomahub.liteflow.annotation.LiteflowComponent;
+import com.yomahub.liteflow.core.NodeComponent;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Comparator;
@@ -22,9 +24,21 @@ import java.util.stream.Collectors;
 /**
  * DimensionRecommendProcessor recommend some dimensions related to metrics based on configuration
  */
-public class DimensionRecommendProcessor implements ExecuteResultProcessor {
+@LiteflowComponent(DimensionRecommendProcessor.NODE_NAME)
+public class DimensionRecommendProcessor extends NodeComponent implements ExecuteResultProcessor {
+
+    public static final String NODE_NAME = "DimensionRecommendProcessor";
 
     private static final int recommend_dimension_size = 5;
+
+
+    @Override
+    public void process() throws Exception {
+        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+        if(accept(executeContext)) {
+            process(executeContext);
+        }
+    }
 
     @Override
     public boolean accept(ExecuteContext executeContext) {
@@ -71,4 +85,5 @@ public class DimensionRecommendProcessor implements ExecuteResultProcessor {
         }
         return Objects.nonNull(dimension.getUseCnt());
     }
+
 }

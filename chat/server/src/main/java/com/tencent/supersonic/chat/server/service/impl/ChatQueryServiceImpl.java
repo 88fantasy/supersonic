@@ -16,9 +16,14 @@ import com.tencent.supersonic.chat.server.processor.parse.ParseResultProcessor;
 import com.tencent.supersonic.chat.server.service.AgentService;
 import com.tencent.supersonic.chat.server.service.ChatManageService;
 import com.tencent.supersonic.chat.server.service.ChatQueryService;
+import com.tencent.supersonic.chat.server.service.SseService;
 import com.tencent.supersonic.chat.server.util.ComponentFactory;
 import com.tencent.supersonic.chat.server.util.QueryReqConverter;
-import com.tencent.supersonic.common.jsqlparser.*;
+import com.tencent.supersonic.common.jsqlparser.FieldExpression;
+import com.tencent.supersonic.common.jsqlparser.SqlAddHelper;
+import com.tencent.supersonic.common.jsqlparser.SqlRemoveHelper;
+import com.tencent.supersonic.common.jsqlparser.SqlReplaceHelper;
+import com.tencent.supersonic.common.jsqlparser.SqlSelectHelper;
 import com.tencent.supersonic.common.pojo.User;
 import com.tencent.supersonic.common.pojo.enums.FilterOperatorEnum;
 import com.tencent.supersonic.common.util.DateUtils;
@@ -40,24 +45,48 @@ import com.tencent.supersonic.headless.chat.query.SemanticQuery;
 import com.tencent.supersonic.headless.chat.query.llm.s2sql.LLMSqlQuery;
 import com.tencent.supersonic.headless.server.facade.service.ChatLayerService;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
+import com.yomahub.liteflow.core.FlowExecutor;
+import com.yomahub.liteflow.flow.LiteflowResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.*;
+import net.sf.jsqlparser.expression.operators.relational.ComparisonOperator;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.InExpression;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class ChatQueryServiceImpl implements ChatQueryService {
+
 
     @Autowired
     private ChatManageService chatManageService;
@@ -67,6 +96,15 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     private SemanticLayerService semanticLayerService;
     @Autowired
     private AgentService agentService;
+
+    @Autowired
+    private SseService sseService;
+
+    @Autowired
+    private ThreadPoolExecutor commonExecutor;
+
+    @Autowired
+    private FlowExecutor flowExecutor;
 
     private final List<ChatQueryParser> chatQueryParsers = ComponentFactory.getChatParsers();
     private final List<ChatQueryExecutor> chatQueryExecutors = ComponentFactory.getChatExecutors();
@@ -112,31 +150,26 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     @Override
-    public QueryResult execute(ChatExecuteReq chatExecuteReq) {
-        QueryResult queryResult = new QueryResult();
+    public Object execute(ChatExecuteReq chatExecuteReq) {
         ExecuteContext executeContext = buildExecuteContext(chatExecuteReq);
-        for (ChatQueryExecutor chatQueryExecutor : chatQueryExecutors) {
-            queryResult = chatQueryExecutor.execute(executeContext);
-            if (queryResult != null) {
-                break;
-            }
+
+        if (chatExecuteReq.isStream()) {
+            String clientId = executeContext.getRequest().getClientId();
+            SseEmitter conn = sseService.getConn(clientId);
+            Future<LiteflowResponse> chatQueryExecuteChainFuture = flowExecutor.execute2Future("chatQueryExecuteChain", null, executeContext);
+            return conn;
         }
 
-        executeContext.setResponse(queryResult);
-        if (queryResult != null) {
-            for (ExecuteResultProcessor processor : executeResultProcessors) {
-                if (processor.accept(executeContext)) {
-                    processor.process(executeContext);
-                }
-            }
-            saveQueryResult(chatExecuteReq, queryResult);
-        }
+        LiteflowResponse chatQueryExecuteChain = flowExecutor.execute2Resp("chatQueryExecuteChain", null, executeContext);
+        QueryResult queryResult = executeContext.getResponse();
+        saveQueryResult(executeContext.getRequest(), queryResult);
 
         return queryResult;
     }
 
+
     @Override
-    public QueryResult parseAndExecute(ChatParseReq chatParseReq) {
+    public Object parseAndExecute(ChatParseReq chatParseReq) {
         ChatParseResp parseResp = parse(chatParseReq);
         if (CollectionUtils.isEmpty(parseResp.getSelectedParses())) {
             log.debug("chatId:{}, agentId:{}, queryText:{}, parseResp.getSelectedParses() is empty",
@@ -202,7 +235,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private void handleLLMQueryMode(ChatQueryDataReq chatQueryDataReq, SemanticQuery semanticQuery,
-            DataSetSchema dataSetSchema, User user) throws Exception {
+                                    DataSetSchema dataSetSchema, User user) throws Exception {
         SemanticParseInfo parseInfo = semanticQuery.getParseInfo();
         String rebuiltS2SQL;
         if (checkMetricReplace(chatQueryDataReq, parseInfo)) {
@@ -223,7 +256,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private void handleRuleQueryMode(SemanticQuery semanticQuery, DataSetSchema dataSetSchema,
-            User user) {
+                                     User user) {
         log.info("rule begin replace metrics and revise filters!");
         validFilter(semanticQuery.getParseInfo().getDimensionFilters());
         validFilter(semanticQuery.getParseInfo().getMetricFilters());
@@ -240,7 +273,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private boolean checkMetricReplace(ChatQueryDataReq chatQueryDataReq,
-            SemanticParseInfo parseInfo) {
+                                       SemanticParseInfo parseInfo) {
         List<String> oriFields = getFieldsFromSql(parseInfo);
         Set<SchemaElement> metrics = chatQueryDataReq.getMetrics();
         if (CollectionUtils.isEmpty(oriFields) || CollectionUtils.isEmpty(metrics)) {
@@ -252,7 +285,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private String replaceFilters(ChatQueryDataReq queryData, SemanticParseInfo parseInfo,
-            DataSetSchema dataSetSchema) {
+                                  DataSetSchema dataSetSchema) {
         String correctorSql = parseInfo.getSqlInfo().getCorrectedS2SQL();
         log.info("correctorSql before replacing:{}", correctorSql);
         // get where filter and having filter
@@ -325,8 +358,8 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private Set<String> updateDateInfo(ChatQueryDataReq queryData, SemanticParseInfo parseInfo,
-            DataSetSchema dataSetSchema, Map<String, Map<String, String>> filedNameToValueMap,
-            List<FieldExpression> fieldExpressionList, List<Expression> addConditions) {
+                                       DataSetSchema dataSetSchema, Map<String, Map<String, String>> filedNameToValueMap,
+                                       List<FieldExpression> fieldExpressionList, List<Expression> addConditions) {
         Set<String> removeFieldNames = new HashSet<>();
         if (Objects.isNull(queryData.getDateInfo())) {
             return removeFieldNames;
@@ -355,7 +388,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
             for (QueryFilter queryFilter : queryData.getDimensionFilters()) {
                 if (queryFilter.getOperator().equals(FilterOperatorEnum.LIKE)
                         && FilterOperatorEnum.LIKE.getValue()
-                                .equalsIgnoreCase(fieldExpression.getOperator())) {
+                        .equalsIgnoreCase(fieldExpression.getOperator())) {
                     Map<String, String> replaceMap = new HashMap<>();
                     String preValue = fieldExpression.getFieldValue().toString();
                     String curValue = queryFilter.getValue().toString();
@@ -376,7 +409,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private <T extends ComparisonOperator> void addTimeFilters(String date, T comparisonExpression,
-            List<Expression> addConditions, SchemaElement partitionDimension) {
+                                                               List<Expression> addConditions, SchemaElement partitionDimension) {
         Column column = new Column(partitionDimension.getName());
         StringValue stringValue = new StringValue(date);
         comparisonExpression.setLeftExpression(column);
@@ -385,8 +418,8 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private Set<String> updateFilters(List<FieldExpression> fieldExpressionList,
-            Set<QueryFilter> metricFilters, Set<QueryFilter> contextMetricFilters,
-            List<Expression> addConditions) {
+                                      Set<QueryFilter> metricFilters, Set<QueryFilter> contextMetricFilters,
+                                      List<Expression> addConditions) {
         Set<String> removeFieldNames = new HashSet<>();
         if (CollectionUtils.isEmpty(metricFilters)) {
             return removeFieldNames;
@@ -406,7 +439,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     private void handleFilter(QueryFilter dslQueryFilter, Set<QueryFilter> contextMetricFilters,
-            List<Expression> addConditions) {
+                              List<Expression> addConditions) {
         FilterOperatorEnum operator = dslQueryFilter.getOperator();
 
         if (operator == FilterOperatorEnum.IN) {
@@ -422,7 +455,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
 
     // add in condition to sql where condition
     private void addWhereInFilters(QueryFilter dslQueryFilter, InExpression inExpression,
-            Set<QueryFilter> contextMetricFilters, List<Expression> addConditions) {
+                                   Set<QueryFilter> contextMetricFilters, List<Expression> addConditions) {
         Column column = new Column(dslQueryFilter.getName());
         ParenthesedExpressionList parenthesedExpressionList = new ParenthesedExpressionList<>();
         List<String> valueList =
@@ -447,8 +480,8 @@ public class ChatQueryServiceImpl implements ChatQueryService {
 
     // add where filter
     private void addWhereFilters(QueryFilter dslQueryFilter,
-            ComparisonOperator comparisonExpression, Set<QueryFilter> contextMetricFilters,
-            List<Expression> addConditions) {
+                                 ComparisonOperator comparisonExpression, Set<QueryFilter> contextMetricFilters,
+                                 List<Expression> addConditions) {
         String columnName = dslQueryFilter.getName();
         if (StringUtils.isNotBlank(dslQueryFilter.getFunction())) {
             columnName = dslQueryFilter.getFunction() + "(" + dslQueryFilter.getName() + ")";
@@ -527,6 +560,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
         dimensionValueReq.setDataSetIds(agent.getDataSetIds());
         return semanticLayerService.queryDimensionValue(dimensionValueReq, user);
     }
+
 
     public void saveQueryResult(ChatExecuteReq chatExecuteReq, QueryResult queryResult) {
         // The history record only retains the query result of the first parse

@@ -13,8 +13,7 @@ public class GenericHeaderInjector implements Interceptor {
     private final Map<String, String> headers = new HashMap<>();
 
     GenericHeaderInjector(Map<String, String> headers) {
-        Optional.ofNullable(headers)
-                .ifPresent(this.headers::putAll);
+        Optional.ofNullable(headers).ifPresent(this.headers::putAll);
     }
 
     @Override

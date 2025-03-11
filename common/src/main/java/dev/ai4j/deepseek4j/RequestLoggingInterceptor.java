@@ -23,8 +23,7 @@ public class RequestLoggingInterceptor implements Interceptor {
     private static final String BEARER = "Bearer";
     private LogLevel logLevel = LogLevel.DEBUG;
 
-    public RequestLoggingInterceptor() {
-    }
+    public RequestLoggingInterceptor() {}
 
     public RequestLoggingInterceptor(LogLevel logLevel) {
         this.logLevel = logLevel;
@@ -62,43 +61,23 @@ public class RequestLoggingInterceptor implements Interceptor {
     }
 
     private void logInfo(Request request, String message) {
-        log.info(
-                message,
-                request.method(),
-                request.url(),
-                inOneLine(request.headers()),
-                getBody(request)
-        );
+        log.info(message, request.method(), request.url(), inOneLine(request.headers()),
+                getBody(request));
     }
 
     private void logWarn(Request request, String message) {
-        log.warn(
-                message,
-                request.method(),
-                request.url(),
-                inOneLine(request.headers()),
-                getBody(request)
-        );
+        log.warn(message, request.method(), request.url(), inOneLine(request.headers()),
+                getBody(request));
     }
 
     private void logError(Request request, String message) {
-        log.error(
-                message,
-                request.method(),
-                request.url(),
-                inOneLine(request.headers()),
-                getBody(request)
-        );
+        log.error(message, request.method(), request.url(), inOneLine(request.headers()),
+                getBody(request));
     }
 
     private void logDebug(Request request, String message) {
-        log.debug(
-                message,
-                request.method(),
-                request.url(),
-                inOneLine(request.headers()),
-                getBody(request)
-        );
+        log.debug(message, request.method(), request.url(), inOneLine(request.headers()),
+                getBody(request));
     }
 
     static String inOneLine(Headers headers) {

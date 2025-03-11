@@ -17,63 +17,62 @@ import static dev.ai4j.deepseek4j.chat.ToolType.FUNCTION;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ToolChoice {
 
-	@JsonProperty
-	private final ToolType type = FUNCTION;
+    @JsonProperty
+    private final ToolType type = FUNCTION;
 
-	@JsonProperty
-	private final Function function;
+    @JsonProperty
+    private final Function function;
 
-	private ToolChoice(Builder builder) {
-		function = builder.function;
-	}
+    private ToolChoice(Builder builder) {
+        function = builder.function;
+    }
 
-	@Override
-	public boolean equals(Object another) {
-		if (this == another)
-			return true;
-		return another instanceof ToolChoice && equalTo((ToolChoice) another);
-	}
+    @Override
+    public boolean equals(Object another) {
+        if (this == another)
+            return true;
+        return another instanceof ToolChoice && equalTo((ToolChoice) another);
+    }
 
-	private boolean equalTo(ToolChoice another) {
-		return Objects.equals(type, another.type) && Objects.equals(function, another.function);
-	}
+    private boolean equalTo(ToolChoice another) {
+        return Objects.equals(type, another.type) && Objects.equals(function, another.function);
+    }
 
-	@Override
-	public int hashCode() {
-		int h = 5381;
-		h += (h << 5) + Objects.hashCode(type);
-		h += (h << 5) + Objects.hashCode(function);
-		return h;
-	}
+    @Override
+    public int hashCode() {
+        int h = 5381;
+        h += (h << 5) + Objects.hashCode(type);
+        h += (h << 5) + Objects.hashCode(function);
+        return h;
+    }
 
-	@Override
-	public String toString() {
-		return "ToolChoice{" + "type=" + type + ", function=" + function + "}";
-	}
+    @Override
+    public String toString() {
+        return "ToolChoice{" + "type=" + type + ", function=" + function + "}";
+    }
 
-	public static ToolChoice from(String functionName) {
-		return new Builder().function(Function.builder().name(functionName).build()).build();
-	}
+    public static ToolChoice from(String functionName) {
+        return new Builder().function(Function.builder().name(functionName).build()).build();
+    }
 
-	@JsonPOJOBuilder(withPrefix = "")
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-	public static final class Builder {
+    @JsonPOJOBuilder(withPrefix = "")
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public static final class Builder {
 
-		private Function function;
+        private Function function;
 
-		private Builder() {
-		}
+        private Builder() {}
 
-		public ToolChoice.Builder function(Function function) {
-			this.function = function;
-			return this;
-		}
+        public ToolChoice.Builder function(Function function) {
+            this.function = function;
+            return this;
+        }
 
-		public ToolChoice build() {
-			return new ToolChoice(this);
-		}
+        public ToolChoice build() {
+            return new ToolChoice(this);
+        }
 
-	}
+    }
 
 }

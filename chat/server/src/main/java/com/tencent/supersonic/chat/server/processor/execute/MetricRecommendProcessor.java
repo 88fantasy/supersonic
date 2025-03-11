@@ -10,6 +10,8 @@ import com.tencent.supersonic.headless.api.pojo.SchemaElement;
 import com.tencent.supersonic.headless.api.pojo.SchemaElementType;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
 import com.tencent.supersonic.headless.chat.knowledge.MetaEmbeddingService;
+import com.yomahub.liteflow.annotation.LiteflowComponent;
+import com.yomahub.liteflow.core.NodeComponent;
 import dev.langchain4j.store.embedding.Retrieval;
 import dev.langchain4j.store.embedding.RetrieveQuery;
 import dev.langchain4j.store.embedding.RetrieveQueryResult;
@@ -21,9 +23,20 @@ import java.util.stream.Collectors;
 /**
  * MetricRecommendProcessor fills recommended metrics based on embedding similarity.
  **/
-public class MetricRecommendProcessor implements ExecuteResultProcessor {
+@LiteflowComponent(MetricRecommendProcessor.NODE_NAME)
+public class MetricRecommendProcessor extends NodeComponent implements ExecuteResultProcessor {
+
+    public static final String NODE_NAME = "MetricRecommendProcessor";
 
     private static final int METRIC_RECOMMEND_SIZE = 5;
+
+    @Override
+    public void process() throws Exception {
+        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+        if(accept(executeContext)) {
+            process(executeContext);
+        }
+    }
 
     @Override
     public boolean accept(ExecuteContext executeContext) {

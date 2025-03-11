@@ -12,7 +12,8 @@ public class CustomAiMessage extends AiMessage {
     private final Map<String, Object> attributes;
 
 
-    public CustomAiMessage(List<ToolExecutionRequest> toolExecutionRequests, Map<String, Object> attributes) {
+    public CustomAiMessage(List<ToolExecutionRequest> toolExecutionRequests,
+            Map<String, Object> attributes) {
         super(toolExecutionRequests);
         this.attributes = attributes;
     }
@@ -22,7 +23,8 @@ public class CustomAiMessage extends AiMessage {
         this.attributes = attributes;
     }
 
-    public CustomAiMessage(String text, List<ToolExecutionRequest> toolExecutionRequests, Map<String, Object> attributes) {
+    public CustomAiMessage(String text, List<ToolExecutionRequest> toolExecutionRequests,
+            Map<String, Object> attributes) {
         super(text, toolExecutionRequests);
         this.attributes = attributes;
     }

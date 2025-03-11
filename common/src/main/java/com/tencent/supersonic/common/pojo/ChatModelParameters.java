@@ -60,11 +60,11 @@ public class ChatModelParameters {
     }
 
     private static List<String> getCandidateValues() {
-        return Lists.newArrayList(DeepSeekModelFactory.PROVIDER,
-                OpenAiModelFactory.PROVIDER, OllamaModelFactory.PROVIDER,
-                QianfanModelFactory.PROVIDER, ZhipuModelFactory.PROVIDER,
-                LocalAiModelFactory.PROVIDER, DashscopeModelFactory.PROVIDER,
-                AzureModelFactory.PROVIDER, DifyModelFactory.PROVIDER);
+        return Lists.newArrayList(DeepSeekModelFactory.PROVIDER, OpenAiModelFactory.PROVIDER,
+                OllamaModelFactory.PROVIDER, QianfanModelFactory.PROVIDER,
+                ZhipuModelFactory.PROVIDER, LocalAiModelFactory.PROVIDER,
+                DashscopeModelFactory.PROVIDER, AzureModelFactory.PROVIDER,
+                DifyModelFactory.PROVIDER);
     }
 
     private static List<Parameter.Dependency> getBaseUrlDependency() {
@@ -86,15 +86,15 @@ public class ChatModelParameters {
                         ZhipuModelFactory.PROVIDER, LocalAiModelFactory.PROVIDER,
                         AzureModelFactory.PROVIDER, DashscopeModelFactory.PROVIDER,
                         DifyModelFactory.PROVIDER, DeepSeekModelFactory.PROVIDER),
-                ImmutableMap.of(OpenAiModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
-                        QianfanModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
-                        ZhipuModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
-                        LocalAiModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
-                        AzureModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
-                        DashscopeModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
-                        DifyModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey(),
-                        DeepSeekModelFactory.PROVIDER, ModelProvider.DEMO_CHAT_MODEL.getApiKey()
-                ));
+                ImmutableMap.of(OpenAiModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), QianfanModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), ZhipuModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), LocalAiModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), AzureModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), DashscopeModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), DifyModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey(), DeepSeekModelFactory.PROVIDER,
+                        ModelProvider.DEMO_CHAT_MODEL.getApiKey()));
     }
 
     private static List<Parameter.Dependency> getApiVersionDependency() {

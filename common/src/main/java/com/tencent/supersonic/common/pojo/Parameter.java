@@ -50,7 +50,7 @@ public class Parameter {
     private List<Dependency> dependencies;
 
     public Parameter(String name, String defaultValue, String comment, String description,
-                     String dataType) {
+            String dataType) {
         this(name, defaultValue, comment, description, dataType, null, null, null);
     }
 

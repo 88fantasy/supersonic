@@ -6,13 +6,13 @@ import lombok.Data;
 @Data
 public class Model {
 
-	@JsonProperty("id")
-	private String id;
+    @JsonProperty("id")
+    private String id;
 
-	@JsonProperty("object")
-	private String modelObject;
+    @JsonProperty("object")
+    private String modelObject;
 
-	@JsonProperty("owned_by")
-	private String ownedBy;
+    @JsonProperty("owned_by")
+    private String ownedBy;
 
 }

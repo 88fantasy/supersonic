@@ -17,92 +17,92 @@ import static dev.ai4j.deepseek4j.chat.Role.TOOL;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public final class ToolMessage implements Message {
 
-	@JsonProperty
-	private final Role role = TOOL;
+    @JsonProperty
+    private final Role role = TOOL;
 
-	@JsonProperty
-	private final String toolCallId;
+    @JsonProperty
+    private final String toolCallId;
 
-	@JsonProperty
-	private final String content;
+    @JsonProperty
+    private final String content;
 
-	private ToolMessage(Builder builder) {
-		this.toolCallId = builder.toolCallId;
-		this.content = builder.content;
-	}
+    private ToolMessage(Builder builder) {
+        this.toolCallId = builder.toolCallId;
+        this.content = builder.content;
+    }
 
-	public Role role() {
-		return role;
-	}
+    public Role role() {
+        return role;
+    }
 
-	public String toolCallId() {
-		return toolCallId;
-	}
+    public String toolCallId() {
+        return toolCallId;
+    }
 
-	public String content() {
-		return content;
-	}
+    public String content() {
+        return content;
+    }
 
-	@Override
-	public boolean equals(Object another) {
-		if (this == another)
-			return true;
-		return another instanceof ToolMessage && equalTo((ToolMessage) another);
-	}
+    @Override
+    public boolean equals(Object another) {
+        if (this == another)
+            return true;
+        return another instanceof ToolMessage && equalTo((ToolMessage) another);
+    }
 
-	private boolean equalTo(ToolMessage another) {
-		return Objects.equals(role, another.role) && Objects.equals(toolCallId, another.toolCallId)
-				&& Objects.equals(content, another.content);
-	}
+    private boolean equalTo(ToolMessage another) {
+        return Objects.equals(role, another.role) && Objects.equals(toolCallId, another.toolCallId)
+                && Objects.equals(content, another.content);
+    }
 
-	@Override
-	public int hashCode() {
-		int h = 5381;
-		h += (h << 5) + Objects.hashCode(role);
-		h += (h << 5) + Objects.hashCode(toolCallId);
-		h += (h << 5) + Objects.hashCode(content);
-		return h;
-	}
+    @Override
+    public int hashCode() {
+        int h = 5381;
+        h += (h << 5) + Objects.hashCode(role);
+        h += (h << 5) + Objects.hashCode(toolCallId);
+        h += (h << 5) + Objects.hashCode(content);
+        return h;
+    }
 
-	@Override
-	public String toString() {
-		return "ToolMessage{" + "role=" + role + ", toolCallId=" + toolCallId + ", content=" + content + "}";
-	}
+    @Override
+    public String toString() {
+        return "ToolMessage{" + "role=" + role + ", toolCallId=" + toolCallId + ", content="
+                + content + "}";
+    }
 
-	public static ToolMessage from(String toolCallId, String content) {
-		return ToolMessage.builder().toolCallId(toolCallId).content(content).build();
-	}
+    public static ToolMessage from(String toolCallId, String content) {
+        return ToolMessage.builder().toolCallId(toolCallId).content(content).build();
+    }
 
-	public static Builder builder() {
-		return new Builder();
-	}
+    public static Builder builder() {
+        return new Builder();
+    }
 
-	@JsonPOJOBuilder(withPrefix = "")
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-	public static final class Builder {
+    @JsonPOJOBuilder(withPrefix = "")
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public static final class Builder {
 
-		private String toolCallId;
+        private String toolCallId;
 
-		private String content;
+        private String content;
 
-		private Builder() {
-		}
+        private Builder() {}
 
-		public Builder toolCallId(String toolCallId) {
-			this.toolCallId = toolCallId;
-			return this;
-		}
+        public Builder toolCallId(String toolCallId) {
+            this.toolCallId = toolCallId;
+            return this;
+        }
 
-		public Builder content(String content) {
-			this.content = content;
-			return this;
-		}
+        public Builder content(String content) {
+            this.content = content;
+            return this;
+        }
 
-		public ToolMessage build() {
-			return new ToolMessage(this);
-		}
+        public ToolMessage build() {
+            return new ToolMessage(this);
+        }
 
-	}
+    }
 
 }

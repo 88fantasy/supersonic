@@ -25,8 +25,8 @@ public class ChatModelConfig implements Serializable {
     private String secretKey;
     private Double topP;
     private Integer maxRetries = 3;
-    private Boolean logRequests = false;
-    private Boolean logResponses = false;
+    private Boolean logRequests = true;
+    private Boolean logResponses = true;
     private Boolean enableSearch = false;
 
     public String keyDecrypt() {

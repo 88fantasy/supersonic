@@ -4,6 +4,7 @@ import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.pojo.EmbeddingModelConfig;
 import com.tencent.supersonic.common.pojo.Parameter;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.S2OnnxEmbeddingModel;
 import org.apache.commons.lang3.StringUtils;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class InMemoryModelFactory implements ModelFactory  {
+public class InMemoryModelFactory implements ModelFactory {
     public static final String PROVIDER = "IN_MEMORY";
 
 
@@ -29,6 +30,11 @@ public class InMemoryModelFactory implements ModelFactory  {
     @Override
     public boolean supportChat() {
         return false;
+    }
+
+    @Override
+    public StreamingChatLanguageModel createStreamingChatModel(ChatModelConfig modelConfig) {
+        return null;
     }
 
     @Override

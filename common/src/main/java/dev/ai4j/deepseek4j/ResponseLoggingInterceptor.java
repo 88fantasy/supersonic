@@ -15,8 +15,7 @@ public class ResponseLoggingInterceptor implements Interceptor {
 
     private LogLevel logLevel = LogLevel.DEBUG;
 
-    public ResponseLoggingInterceptor() {
-    }
+    public ResponseLoggingInterceptor() {}
 
     public ResponseLoggingInterceptor(LogLevel logLevel) {
         this.logLevel = logLevel;
@@ -56,39 +55,19 @@ public class ResponseLoggingInterceptor implements Interceptor {
     }
 
     private void logError(Response response, String message) throws IOException {
-        log.error(
-                message,
-                response.code(),
-                inOneLine(response.headers()),
-                getBody(response)
-        );
+        log.error(message, response.code(), inOneLine(response.headers()), getBody(response));
     }
 
     private void logWarn(Response response, String message) throws IOException {
-        log.warn(
-                message,
-                response.code(),
-                inOneLine(response.headers()),
-                getBody(response)
-        );
+        log.warn(message, response.code(), inOneLine(response.headers()), getBody(response));
     }
 
     private void logInfo(Response response, String message) throws IOException {
-        log.info(
-                message,
-                response.code(),
-                inOneLine(response.headers()),
-                getBody(response)
-        );
+        log.info(message, response.code(), inOneLine(response.headers()), getBody(response));
     }
 
     private void logDebug(Response response, String message) throws IOException {
-        log.debug(
-                message,
-                response.code(),
-                inOneLine(response.headers()),
-                getBody(response)
-        );
+        log.debug(message, response.code(), inOneLine(response.headers()), getBody(response));
     }
 
     private String getBody(Response response) throws IOException {

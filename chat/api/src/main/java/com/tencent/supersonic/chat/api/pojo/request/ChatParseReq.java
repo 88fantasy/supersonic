@@ -23,4 +23,5 @@ public class ChatParseReq {
     private boolean disableLLM = false;
     private Long queryId;
     private SemanticParseInfo selectedParse;
+    private boolean stream = false;
 }

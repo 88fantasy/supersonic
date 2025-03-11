@@ -145,12 +145,16 @@ public class ChatCompletionRequest {
 
     private boolean equalTo(ChatCompletionRequest another) {
         return Objects.equals(model, another.model) && Objects.equals(messages, another.messages)
-                && Objects.equals(temperature, another.temperature) && Objects.equals(topP, another.topP)
-                && Objects.equals(streamOptions, another.streamOptions) && Objects.equals(stop, another.stop)
+                && Objects.equals(temperature, another.temperature)
+                && Objects.equals(topP, another.topP)
+                && Objects.equals(streamOptions, another.streamOptions)
+                && Objects.equals(stop, another.stop)
                 && Objects.equals(presencePenalty, another.presencePenalty)
                 && Objects.equals(frequencyPenalty, another.frequencyPenalty)
-                && Objects.equals(tools, another.tools) && Objects.equals(toolChoice, another.toolChoice)
-                && Objects.equals(logprobs, another.logprobs) && Objects.equals(topLogprobs, another.topLogprobs);
+                && Objects.equals(tools, another.tools)
+                && Objects.equals(toolChoice, another.toolChoice)
+                && Objects.equals(logprobs, another.logprobs)
+                && Objects.equals(topLogprobs, another.topLogprobs);
     }
 
 
@@ -193,8 +197,7 @@ public class ChatCompletionRequest {
 
         private Integer topLogprobs;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder from(ChatCompletionRequest instance) {
             model(instance.model);

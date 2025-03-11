@@ -16,77 +16,77 @@ import java.util.Objects;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ResponseFormat {
 
-	@JsonProperty
-	private final ResponseFormatType type;
+    @JsonProperty
+    private final ResponseFormatType type;
 
-	@JsonProperty
-	private final JsonSchema jsonSchema;
+    @JsonProperty
+    private final JsonSchema jsonSchema;
 
-	@JsonCreator
-	public ResponseFormat(Builder builder) {
-		this.type = builder.type;
-		this.jsonSchema = builder.jsonSchema;
-	}
+    @JsonCreator
+    public ResponseFormat(Builder builder) {
+        this.type = builder.type;
+        this.jsonSchema = builder.jsonSchema;
+    }
 
-	public ResponseFormatType type() {
-		return type;
-	}
+    public ResponseFormatType type() {
+        return type;
+    }
 
-	public JsonSchema jsonSchema() {
-		return jsonSchema;
-	}
+    public JsonSchema jsonSchema() {
+        return jsonSchema;
+    }
 
-	@Override
-	public boolean equals(Object another) {
-		if (this == another)
-			return true;
-		return another instanceof ResponseFormat && equalTo((ResponseFormat) another);
-	}
+    @Override
+    public boolean equals(Object another) {
+        if (this == another)
+            return true;
+        return another instanceof ResponseFormat && equalTo((ResponseFormat) another);
+    }
 
-	private boolean equalTo(ResponseFormat another) {
-		return Objects.equals(type, another.type) && Objects.equals(jsonSchema, another.jsonSchema);
-	}
+    private boolean equalTo(ResponseFormat another) {
+        return Objects.equals(type, another.type) && Objects.equals(jsonSchema, another.jsonSchema);
+    }
 
-	@Override
-	public int hashCode() {
-		int h = 5381;
-		h += (h << 5) + Objects.hashCode(type);
-		h += (h << 5) + Objects.hashCode(jsonSchema);
-		return h;
-	}
+    @Override
+    public int hashCode() {
+        int h = 5381;
+        h += (h << 5) + Objects.hashCode(type);
+        h += (h << 5) + Objects.hashCode(jsonSchema);
+        return h;
+    }
 
-	@Override
-	public String toString() {
-		return "ResponseFormat{" + "type=" + type + ", jsonSchema=" + jsonSchema + "}";
-	}
+    @Override
+    public String toString() {
+        return "ResponseFormat{" + "type=" + type + ", jsonSchema=" + jsonSchema + "}";
+    }
 
-	public static ResponseFormat.Builder builder() {
-		return new ResponseFormat.Builder();
-	}
+    public static ResponseFormat.Builder builder() {
+        return new ResponseFormat.Builder();
+    }
 
-	@JsonPOJOBuilder(withPrefix = "")
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-	public static class Builder {
+    @JsonPOJOBuilder(withPrefix = "")
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public static class Builder {
 
-		private ResponseFormatType type;
+        private ResponseFormatType type;
 
-		private JsonSchema jsonSchema;
+        private JsonSchema jsonSchema;
 
-		public ResponseFormat.Builder type(ResponseFormatType type) {
-			this.type = type;
-			return this;
-		}
+        public ResponseFormat.Builder type(ResponseFormatType type) {
+            this.type = type;
+            return this;
+        }
 
-		public ResponseFormat.Builder jsonSchema(JsonSchema jsonSchema) {
-			this.jsonSchema = jsonSchema;
-			return this;
-		}
+        public ResponseFormat.Builder jsonSchema(JsonSchema jsonSchema) {
+            this.jsonSchema = jsonSchema;
+            return this;
+        }
 
-		public ResponseFormat build() {
-			return new ResponseFormat(this);
-		}
+        public ResponseFormat build() {
+            return new ResponseFormat(this);
+        }
 
-	}
+    }
 
 }

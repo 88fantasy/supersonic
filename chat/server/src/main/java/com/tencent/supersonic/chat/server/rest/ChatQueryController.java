@@ -16,12 +16,16 @@ import jakarta.validation.Valid;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** query controller */
+/**
+ * query controller
+ */
 @RestController
 @RequestMapping({"/api/chat/query", "/openapi/chat/query"})
 public class ChatQueryController {
@@ -81,4 +85,5 @@ public class ChatQueryController {
         return chatQueryService.queryDimensionValue(dimensionValueReq,
                 UserHolder.findUser(request, response));
     }
+
 }

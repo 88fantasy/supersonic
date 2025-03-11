@@ -19,173 +19,174 @@ import static java.util.Collections.unmodifiableList;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public final class ChatCompletionResponse {
 
-	@JsonProperty
-	private final String id;
+    @JsonProperty
+    private final String id;
 
-	@JsonProperty
-	private final Integer created;
+    @JsonProperty
+    private final Integer created;
 
-	@JsonProperty
-	private final String model;
+    @JsonProperty
+    private final String model;
 
-	@JsonProperty
-	private final List<ChatCompletionChoice> choices;
+    @JsonProperty
+    private final List<ChatCompletionChoice> choices;
 
-	@JsonProperty
-	private final Usage usage;
+    @JsonProperty
+    private final Usage usage;
 
-	@JsonProperty
-	private final String systemFingerprint;
+    @JsonProperty
+    private final String systemFingerprint;
 
-	@JsonProperty
-	private final String serviceTier;
+    @JsonProperty
+    private final String serviceTier;
 
-	private ChatCompletionResponse(Builder builder) {
-		this.id = builder.id;
-		this.created = builder.created;
-		this.model = builder.model;
-		this.choices = builder.choices;
-		this.usage = builder.usage;
-		this.systemFingerprint = builder.systemFingerprint;
-		this.serviceTier = builder.serviceTier;
-	}
+    private ChatCompletionResponse(Builder builder) {
+        this.id = builder.id;
+        this.created = builder.created;
+        this.model = builder.model;
+        this.choices = builder.choices;
+        this.usage = builder.usage;
+        this.systemFingerprint = builder.systemFingerprint;
+        this.serviceTier = builder.serviceTier;
+    }
 
-	public String id() {
-		return id;
-	}
+    public String id() {
+        return id;
+    }
 
-	public Integer created() {
-		return created;
-	}
+    public Integer created() {
+        return created;
+    }
 
-	public String model() {
-		return model;
-	}
+    public String model() {
+        return model;
+    }
 
-	public List<ChatCompletionChoice> choices() {
-		return choices;
-	}
+    public List<ChatCompletionChoice> choices() {
+        return choices;
+    }
 
-	public Usage usage() {
-		return usage;
-	}
+    public Usage usage() {
+        return usage;
+    }
 
-	public String systemFingerprint() {
-		return systemFingerprint;
-	}
+    public String systemFingerprint() {
+        return systemFingerprint;
+    }
 
-	public String serviceTier() {
-		return serviceTier;
-	}
+    public String serviceTier() {
+        return serviceTier;
+    }
 
-	/**
-	 * Convenience method to get the content of the message from the first choice.
-	 */
-	public String content() {
-		return choices().get(0).message().content();
-	}
+    /**
+     * Convenience method to get the content of the message from the first choice.
+     */
+    public String content() {
+        return choices().get(0).message().content();
+    }
 
-	@Override
-	public boolean equals(Object another) {
-		if (this == another)
-			return true;
-		return another instanceof ChatCompletionResponse && equalTo((ChatCompletionResponse) another);
-	}
+    @Override
+    public boolean equals(Object another) {
+        if (this == another)
+            return true;
+        return another instanceof ChatCompletionResponse
+                && equalTo((ChatCompletionResponse) another);
+    }
 
-	private boolean equalTo(ChatCompletionResponse another) {
-		return Objects.equals(id, another.id) && Objects.equals(created, another.created)
-				&& Objects.equals(model, another.model) && Objects.equals(choices, another.choices)
-				&& Objects.equals(usage, another.usage) && Objects.equals(systemFingerprint, another.systemFingerprint)
-				&& Objects.equals(serviceTier, another.serviceTier);
-	}
+    private boolean equalTo(ChatCompletionResponse another) {
+        return Objects.equals(id, another.id) && Objects.equals(created, another.created)
+                && Objects.equals(model, another.model) && Objects.equals(choices, another.choices)
+                && Objects.equals(usage, another.usage)
+                && Objects.equals(systemFingerprint, another.systemFingerprint)
+                && Objects.equals(serviceTier, another.serviceTier);
+    }
 
-	@Override
-	public int hashCode() {
-		int h = 5381;
-		h += (h << 5) + Objects.hashCode(id);
-		h += (h << 5) + Objects.hashCode(created);
-		h += (h << 5) + Objects.hashCode(model);
-		h += (h << 5) + Objects.hashCode(choices);
-		h += (h << 5) + Objects.hashCode(usage);
-		h += (h << 5) + Objects.hashCode(systemFingerprint);
-		h += (h << 5) + Objects.hashCode(serviceTier);
-		return h;
-	}
+    @Override
+    public int hashCode() {
+        int h = 5381;
+        h += (h << 5) + Objects.hashCode(id);
+        h += (h << 5) + Objects.hashCode(created);
+        h += (h << 5) + Objects.hashCode(model);
+        h += (h << 5) + Objects.hashCode(choices);
+        h += (h << 5) + Objects.hashCode(usage);
+        h += (h << 5) + Objects.hashCode(systemFingerprint);
+        h += (h << 5) + Objects.hashCode(serviceTier);
+        return h;
+    }
 
-	@Override
-	public String toString() {
-		return "ChatCompletionResponse{" + "id=" + id + ", created=" + created + ", model=" + model + ", choices="
-				+ choices + ", usage=" + usage + ", systemFingerprint=" + systemFingerprint + ", serviceTier="
-				+ serviceTier + "}";
-	}
+    @Override
+    public String toString() {
+        return "ChatCompletionResponse{" + "id=" + id + ", created=" + created + ", model=" + model
+                + ", choices=" + choices + ", usage=" + usage + ", systemFingerprint="
+                + systemFingerprint + ", serviceTier=" + serviceTier + "}";
+    }
 
-	public static Builder builder() {
-		return new Builder();
-	}
+    public static Builder builder() {
+        return new Builder();
+    }
 
-	@JsonPOJOBuilder(withPrefix = "")
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-	public static final class Builder {
+    @JsonPOJOBuilder(withPrefix = "")
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public static final class Builder {
 
-		private String id;
+        private String id;
 
-		private Integer created;
+        private Integer created;
 
-		private String model;
+        private String model;
 
-		private List<ChatCompletionChoice> choices;
+        private List<ChatCompletionChoice> choices;
 
-		private Usage usage;
+        private Usage usage;
 
-		private String systemFingerprint;
+        private String systemFingerprint;
 
-		private String serviceTier;
+        private String serviceTier;
 
-		private Builder() {
-		}
+        private Builder() {}
 
-		public Builder id(String id) {
-			this.id = id;
-			return this;
-		}
+        public Builder id(String id) {
+            this.id = id;
+            return this;
+        }
 
-		public Builder created(Integer created) {
-			this.created = created;
-			return this;
-		}
+        public Builder created(Integer created) {
+            this.created = created;
+            return this;
+        }
 
-		public Builder model(String model) {
-			this.model = model;
-			return this;
-		}
+        public Builder model(String model) {
+            this.model = model;
+            return this;
+        }
 
-		public Builder choices(List<ChatCompletionChoice> choices) {
-			if (choices != null) {
-				this.choices = unmodifiableList(choices);
-			}
-			return this;
-		}
+        public Builder choices(List<ChatCompletionChoice> choices) {
+            if (choices != null) {
+                this.choices = unmodifiableList(choices);
+            }
+            return this;
+        }
 
-		public Builder usage(Usage usage) {
-			this.usage = usage;
-			return this;
-		}
+        public Builder usage(Usage usage) {
+            this.usage = usage;
+            return this;
+        }
 
-		public Builder systemFingerprint(String systemFingerprint) {
-			this.systemFingerprint = systemFingerprint;
-			return this;
-		}
+        public Builder systemFingerprint(String systemFingerprint) {
+            this.systemFingerprint = systemFingerprint;
+            return this;
+        }
 
-		public Builder serviceTier(String serviceTier) {
-			this.serviceTier = serviceTier;
-			return this;
-		}
+        public Builder serviceTier(String serviceTier) {
+            this.serviceTier = serviceTier;
+            return this;
+        }
 
-		public ChatCompletionResponse build() {
-			return new ChatCompletionResponse(this);
-		}
+        public ChatCompletionResponse build() {
+            return new ChatCompletionResponse(this);
+        }
 
-	}
+    }
 
 }

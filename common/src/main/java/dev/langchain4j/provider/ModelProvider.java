@@ -5,6 +5,7 @@ import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.pojo.EmbeddingModelConfig;
 import com.tencent.supersonic.common.util.ContextUtils;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.apache.commons.lang3.StringUtils;
 
@@ -31,10 +32,27 @@ public class ModelProvider {
 
     public static ModelFactory getFactory(String model) {
         if (!factories.containsKey(model)) {
-            throw new RuntimeException(
-                    "Unknown Model Provider: " + model);
+            throw new RuntimeException("Unknown Model Provider: " + model);
         }
         return factories.get(model);
+    }
+
+    public static StreamingChatLanguageModel getStreamingChatModel() {
+        return getStreamingChatModel(null);
+    }
+
+    public static StreamingChatLanguageModel getStreamingChatModel(ChatModelConfig modelConfig) {
+        if (modelConfig == null || StringUtils.isBlank(modelConfig.getProvider())
+                || StringUtils.isBlank(modelConfig.getBaseUrl())) {
+            modelConfig = DEMO_CHAT_MODEL;
+        }
+        ModelFactory modelFactory = factories.get(modelConfig.getProvider().toUpperCase());
+        if (modelFactory != null) {
+            return modelFactory.createStreamingChatModel(modelConfig);
+        }
+
+        throw new RuntimeException(
+                "Unsupported StreamingChatLanguageModel provider: " + modelConfig.getProvider());
     }
 
     public static ChatLanguageModel getChatModel() {
@@ -66,14 +84,12 @@ public class ModelProvider {
             embeddingModel = parameterConfig.convert();
         }
         String provider = embeddingModel.getProvider();
-        if(!factories.containsKey(provider)) {
-            throw new RuntimeException(
-                    "Unknown EmbeddingModel provider: " + provider);
+        if (!factories.containsKey(provider)) {
+            throw new RuntimeException("Unknown EmbeddingModel provider: " + provider);
         }
         ModelFactory modelFactory = factories.get(provider);
         if (!modelFactory.supportEmbedding()) {
-            throw new RuntimeException(
-                    "Unsupported EmbeddingModel provider: " + provider);
+            throw new RuntimeException("Unsupported EmbeddingModel provider: " + provider);
         }
         return modelFactory.createEmbeddingModel(embeddingModel);
     }

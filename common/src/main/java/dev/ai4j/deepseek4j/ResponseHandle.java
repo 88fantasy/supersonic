@@ -5,14 +5,14 @@ package dev.ai4j.deepseek4j;
  */
 public class ResponseHandle {
 
-	volatile boolean cancelled = false;
+    volatile boolean cancelled = false;
 
-	/**
-	 * Cancels the response. Currently, this only works for streaming. It has no effect on
-	 * regular asynchronous responses.
-	 */
-	public void cancel() {
-		cancelled = true;
-	}
+    /**
+     * Cancels the response. Currently, this only works for streaming. It has no effect on regular
+     * asynchronous responses.
+     */
+    public void cancel() {
+        cancelled = true;
+    }
 
 }

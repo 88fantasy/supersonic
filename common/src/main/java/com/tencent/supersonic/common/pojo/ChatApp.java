@@ -1,7 +1,5 @@
 package com.tencent.supersonic.common.pojo;
 
-import java.util.Collections;
-import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tencent.supersonic.common.pojo.enums.AppModule;
 import lombok.AllArgsConstructor;
@@ -10,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.Map;
 
 @Data
 @Builder

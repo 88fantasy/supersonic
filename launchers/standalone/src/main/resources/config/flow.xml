@@ -1,0 +1,19 @@
+<flow>
+    <chain id="chatQuerySqlExecuteChain">
+        SER(SqlExecutor, MetricRecommendProcessor, DimensionRecommendProcessor, MetricRatioCalcProcessor, DataInterpretProcessor, FinishExecutor);
+    </chain>
+    <chain id="chatQueryPluginExecuteChain">
+        SER(PluginExecutor, FinishExecutor);
+    </chain>
+    <chain id="chatQueryPlainExecuteChain">
+        SER(PlainTextExecutor, FinishExecutor);
+    </chain>
+    <chain id="chatQueryExecuteChain">
+        SWITCH(ChatQuerySwitch)
+            .TO(
+                chatQueryPluginExecuteChain,
+                chatQuerySqlExecuteChain,
+                chatQueryPlainExecuteChain
+        ).DEFAULT(FinishExecutor);
+    </chain>
+</flow>

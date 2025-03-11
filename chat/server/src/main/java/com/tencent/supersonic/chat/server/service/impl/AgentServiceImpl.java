@@ -16,6 +16,7 @@ import com.tencent.supersonic.common.pojo.ChatApp;
 import com.tencent.supersonic.common.pojo.User;
 import com.tencent.supersonic.common.pojo.enums.AuthType;
 import com.tencent.supersonic.common.service.ChatModelService;
+import com.tencent.supersonic.common.util.ContextUtils;
 import com.tencent.supersonic.common.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -35,9 +36,6 @@ public class AgentServiceImpl extends ServiceImpl<AgentDOMapper, AgentDO> implem
 
     @Autowired
     private MemoryService memoryService;
-
-    @Autowired
-    private ChatQueryService chatQueryService;
 
     @Autowired
     private ChatModelService chatModelService;
@@ -129,7 +127,7 @@ public class AgentServiceImpl extends ServiceImpl<AgentDOMapper, AgentDO> implem
                 continue;
             }
             try {
-                chatQueryService
+                ContextUtils.getBean(ChatQueryService.class)
                         .parseAndExecute(ChatParseReq.builder().chatId(-1).agentId(agent.getId())
                                 .queryText(example).user(User.getDefaultUser()).build());
             } catch (Exception e) {

@@ -1,21 +1,26 @@
 package com.tencent.supersonic.chat.server.executor;
 
-import com.tencent.supersonic.chat.api.pojo.response.QueryResult;
 import com.tencent.supersonic.chat.server.plugin.PluginQueryManager;
 import com.tencent.supersonic.chat.server.plugin.build.PluginSemanticQuery;
 import com.tencent.supersonic.chat.server.pojo.ExecuteContext;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
+import com.yomahub.liteflow.annotation.LiteflowComponent;
+import com.yomahub.liteflow.core.NodeComponent;
 
-public class PluginExecutor implements ChatQueryExecutor {
+@LiteflowComponent(PluginExecutor.NODE_NAME)
+public class PluginExecutor extends NodeComponent {
+
+    public static final String NODE_NAME = "PluginExecutor";
 
     @Override
-    public QueryResult execute(ExecuteContext executeContext) {
+    public void process() throws Exception {
+        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
         SemanticParseInfo parseInfo = executeContext.getParseInfo();
-        if (!PluginQueryManager.isPluginQuery(parseInfo.getQueryMode())) {
-            return null;
+        if(!executeContext.hasResponse() && PluginQueryManager.isPluginQuery(parseInfo.getQueryMode())) {
+            PluginSemanticQuery query = PluginQueryManager.getPluginQuery(parseInfo.getQueryMode());
+            query.setParseInfo(parseInfo);
+            executeContext.setResponse(query.build());
         }
-        PluginSemanticQuery query = PluginQueryManager.getPluginQuery(parseInfo.getQueryMode());
-        query.setParseInfo(parseInfo);
-        return query.build();
+
     }
 }

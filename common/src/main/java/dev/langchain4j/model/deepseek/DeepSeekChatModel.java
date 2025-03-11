@@ -68,14 +68,12 @@ public class DeepSeekChatModel implements ChatLanguageModel {
     private final List<ChatModelListener> listeners;
 
     @Builder
-    public DeepSeekChatModel(String baseUrl, String apiKey, String modelName,
-                             Double temperature, Double topP, List<String> stop,
-                             Integer maxTokens, Double presencePenalty, Double frequencyPenalty,
-                             String responseFormat, Boolean strictJsonSchema,
-                             Boolean strictTools,
-                             Long timeout, Integer maxRetries, Boolean logRequests,
-                             Boolean logResponses, Map<String, String> customHeaders,
-                             List<ChatModelListener> listeners) {
+    public DeepSeekChatModel(String baseUrl, String apiKey, String modelName, Double temperature,
+            Double topP, List<String> stop, Integer maxTokens, Double presencePenalty,
+            Double frequencyPenalty, String responseFormat, Boolean strictJsonSchema,
+            Boolean strictTools, Long timeout, Integer maxRetries, Boolean logRequests,
+            Boolean logResponses, Map<String, String> customHeaders,
+            List<ChatModelListener> listeners) {
         baseUrl = getOrDefault(baseUrl, DEFAULT_URL);
 
         timeout = getOrDefault(timeout, 60L);
@@ -84,16 +82,11 @@ public class DeepSeekChatModel implements ChatLanguageModel {
 
         logResponses = getOrDefault(logResponses, false);
 
-        this.client = DeepSeekClient.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
+        this.client = DeepSeekClient.builder().apiKey(apiKey).baseUrl(baseUrl)
                 .callTimeout(Duration.ofSeconds(timeout))
                 .connectTimeout(Duration.ofSeconds(timeout))
-                .readTimeout(Duration.ofSeconds(timeout))
-                .writeTimeout(Duration.ofSeconds(timeout))
-                .logRequests(logRequests)
-                .logResponses(logResponses)
-                .customHeaders(customHeaders)
+                .readTimeout(Duration.ofSeconds(timeout)).writeTimeout(Duration.ofSeconds(timeout))
+                .logRequests(logRequests).logResponses(logResponses).customHeaders(customHeaders)
                 .build();
         this.modelName = getOrDefault(modelName, DeepSeekModelName.DEEPSEEK_CHAT.modelName());
         this.temperature = getOrDefault(temperature, 0.7);
@@ -102,9 +95,10 @@ public class DeepSeekChatModel implements ChatLanguageModel {
         this.maxTokens = maxTokens;
         this.presencePenalty = presencePenalty;
         this.frequencyPenalty = frequencyPenalty;
-        this.responseFormat = responseFormat == null ? null : ResponseFormat.builder()
-                .type(ResponseFormatType.valueOf(responseFormat.toUpperCase(Locale.ROOT)))
-                .build();
+        this.responseFormat = responseFormat == null ? null
+                : ResponseFormat.builder()
+                        .type(ResponseFormatType.valueOf(responseFormat.toUpperCase(Locale.ROOT)))
+                        .build();
         this.strictJsonSchema = getOrDefault(strictJsonSchema, false);
         this.strictTools = getOrDefault(strictTools, false);
         this.maxRetries = getOrDefault(maxRetries, 3);
@@ -126,50 +120,41 @@ public class DeepSeekChatModel implements ChatLanguageModel {
     }
 
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
+    public Response<AiMessage> generate(List<ChatMessage> messages,
+            List<ToolSpecification> toolSpecifications) {
         return generate(messages, toolSpecifications, null, this.responseFormat);
     }
 
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
-        return generate(messages, singletonList(toolSpecification), toolSpecification, this.responseFormat);
+    public Response<AiMessage> generate(List<ChatMessage> messages,
+            ToolSpecification toolSpecification) {
+        return generate(messages, singletonList(toolSpecification), toolSpecification,
+                this.responseFormat);
     }
 
     @Override
     public ChatResponse chat(ChatRequest request) {
-        Response<AiMessage> response = generate(
-                request.messages(),
-                request.toolSpecifications(),
+        Response<AiMessage> response = generate(request.messages(), request.toolSpecifications(),
                 null,
-                getOrDefault(toDeepSeekResponseFormat(request.responseFormat(), strictJsonSchema), this.responseFormat)
-        );
-        return ChatResponse.builder()
-                .aiMessage(response.content())
-                .tokenUsage(response.tokenUsage())
-                .finishReason(response.finishReason())
-                .build();
+                getOrDefault(toDeepSeekResponseFormat(request.responseFormat(), strictJsonSchema),
+                        this.responseFormat));
+        return ChatResponse.builder().aiMessage(response.content())
+                .tokenUsage(response.tokenUsage()).finishReason(response.finishReason()).build();
     }
 
     private Response<AiMessage> generate(List<ChatMessage> messages,
-                                         List<ToolSpecification> toolSpecifications,
-                                         ToolSpecification toolThatMustBeExecuted,
-                                         ResponseFormat responseFormat) {
+            List<ToolSpecification> toolSpecifications, ToolSpecification toolThatMustBeExecuted,
+            ResponseFormat responseFormat) {
 
-        if (responseFormat != null
-                && responseFormat.type() == JSON_SCHEMA
+        if (responseFormat != null && responseFormat.type() == JSON_SCHEMA
                 && responseFormat.jsonSchema() == null) {
             responseFormat = null;
         }
 
         ChatCompletionRequest.Builder requestBuilder = ChatCompletionRequest.builder()
-                .model(modelName)
-                .messages(toDeepSeekMessages(messages))
-                .temperature(temperature)
-                .topP(topP)
-                .stop(stop).maxTokens(maxTokens)
-                .presencePenalty(presencePenalty)
-                .frequencyPenalty(frequencyPenalty)
-                .responseFormat(responseFormat);
+                .model(modelName).messages(toDeepSeekMessages(messages)).temperature(temperature)
+                .topP(topP).stop(stop).maxTokens(maxTokens).presencePenalty(presencePenalty)
+                .frequencyPenalty(frequencyPenalty).responseFormat(responseFormat);
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             requestBuilder.tools(toTools(toolSpecifications, strictTools));
@@ -180,9 +165,11 @@ public class DeepSeekChatModel implements ChatLanguageModel {
 
         ChatCompletionRequest request = requestBuilder.build();
 
-        ChatModelRequest modelListenerRequest = createModelListenerRequest(request, messages, toolSpecifications);
+        ChatModelRequest modelListenerRequest =
+                createModelListenerRequest(request, messages, toolSpecifications);
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(modelListenerRequest, attributes);
+        ChatModelRequestContext requestContext =
+                new ChatModelRequestContext(modelListenerRequest, attributes);
         listeners.forEach(listener -> {
             try {
                 listener.onRequest(requestContext);
@@ -192,24 +179,17 @@ public class DeepSeekChatModel implements ChatLanguageModel {
         });
 
         try {
-            ChatCompletionResponse chatCompletionResponse = withRetry(() -> client.chatCompletion(request).execute(), maxRetries);
+            ChatCompletionResponse chatCompletionResponse =
+                    withRetry(() -> client.chatCompletion(request).execute(), maxRetries);
 
-            Response<AiMessage> response = Response.from(
-                    aiMessageFrom(chatCompletionResponse),
+            Response<AiMessage> response = Response.from(aiMessageFrom(chatCompletionResponse),
                     tokenUsageFrom(chatCompletionResponse.usage()),
-                    finishReasonFrom(chatCompletionResponse.choices().get(0).finishReason())
-            );
+                    finishReasonFrom(chatCompletionResponse.choices().get(0).finishReason()));
 
             ChatModelResponse modelListenerResponse = createModelListenerResponse(
-                    chatCompletionResponse.id(),
-                    chatCompletionResponse.model(),
-                    response
-            );
+                    chatCompletionResponse.id(), chatCompletionResponse.model(), response);
             ChatModelResponseContext responseContext = new ChatModelResponseContext(
-                    modelListenerResponse,
-                    modelListenerRequest,
-                    attributes
-            );
+                    modelListenerResponse, modelListenerRequest, attributes);
             listeners.forEach(listener -> {
                 try {
                     listener.onResponse(responseContext);
@@ -228,12 +208,8 @@ public class DeepSeekChatModel implements ChatLanguageModel {
                 error = e;
             }
 
-            ChatModelErrorContext errorContext = new ChatModelErrorContext(
-                    error,
-                    modelListenerRequest,
-                    null,
-                    attributes
-            );
+            ChatModelErrorContext errorContext =
+                    new ChatModelErrorContext(error, modelListenerRequest, null, attributes);
 
             listeners.forEach(listener -> {
                 try {

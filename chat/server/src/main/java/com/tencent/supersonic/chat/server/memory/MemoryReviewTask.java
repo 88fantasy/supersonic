@@ -71,8 +71,7 @@ public class MemoryReviewTask {
                                 # 其他可能有用的背景信息: {{additional_info}}
                                 # 待审核的SQL代码: {{sql_code}}
                                 # 你的反馈:
-                                """))
-                        .build());
+                                """)).build());
     }
 
     @Scheduled(fixedDelay = 60 * 1000)
