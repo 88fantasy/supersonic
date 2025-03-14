@@ -24,4 +24,8 @@ public class ChatParseReq {
     private Long queryId;
     private SemanticParseInfo selectedParse;
     private boolean stream = false;
+
+    public String buildClientId() {
+        return queryId.toString();
+    }
 }

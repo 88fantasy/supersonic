@@ -8,6 +8,9 @@ import com.tencent.supersonic.chat.api.pojo.response.ChatParseResp;
 import com.tencent.supersonic.chat.api.pojo.response.QueryResult;
 import com.tencent.supersonic.chat.server.agent.Agent;
 import com.tencent.supersonic.chat.server.executor.ChatQueryExecutor;
+import com.tencent.supersonic.chat.server.executor.ExecutorAgent;
+import com.tencent.supersonic.chat.server.executor.FinishExecutor;
+import com.tencent.supersonic.chat.server.executor.SupervisorExecutor;
 import com.tencent.supersonic.chat.server.parser.ChatQueryParser;
 import com.tencent.supersonic.chat.server.pojo.ExecuteContext;
 import com.tencent.supersonic.chat.server.pojo.ParseContext;
@@ -16,6 +19,7 @@ import com.tencent.supersonic.chat.server.processor.parse.ParseResultProcessor;
 import com.tencent.supersonic.chat.server.service.AgentService;
 import com.tencent.supersonic.chat.server.service.ChatManageService;
 import com.tencent.supersonic.chat.server.service.ChatQueryService;
+import com.tencent.supersonic.chat.server.service.PlanService;
 import com.tencent.supersonic.chat.server.service.SseService;
 import com.tencent.supersonic.chat.server.util.ComponentFactory;
 import com.tencent.supersonic.chat.server.util.QueryReqConverter;
@@ -26,6 +30,7 @@ import com.tencent.supersonic.common.jsqlparser.SqlReplaceHelper;
 import com.tencent.supersonic.common.jsqlparser.SqlSelectHelper;
 import com.tencent.supersonic.common.pojo.User;
 import com.tencent.supersonic.common.pojo.enums.FilterOperatorEnum;
+import com.tencent.supersonic.common.util.ContextUtils;
 import com.tencent.supersonic.common.util.DateUtils;
 import com.tencent.supersonic.common.util.JsonUtil;
 import com.tencent.supersonic.headless.api.pojo.DataSetSchema;
@@ -45,8 +50,6 @@ import com.tencent.supersonic.headless.chat.query.SemanticQuery;
 import com.tencent.supersonic.headless.chat.query.llm.s2sql.LLMSqlQuery;
 import com.tencent.supersonic.headless.server.facade.service.ChatLayerService;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
-import com.yomahub.liteflow.core.FlowExecutor;
-import com.yomahub.liteflow.flow.LiteflowResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
@@ -59,8 +62,13 @@ import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionLi
 import net.sf.jsqlparser.schema.Column;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.bsc.async.AsyncGeneratorOperators;
+import org.bsc.langgraph4j.CompiledGraph;
+import org.bsc.langgraph4j.GraphRepresentation;
+import org.bsc.langgraph4j.GraphStateException;
+import org.bsc.langgraph4j.NodeOutput;
+import org.bsc.langgraph4j.StateGraph;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -73,15 +81,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+
+import static org.bsc.langgraph4j.StateGraph.END;
+import static org.bsc.langgraph4j.StateGraph.START;
+import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
+import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 @Slf4j
 @Service
@@ -104,7 +113,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     private ThreadPoolExecutor commonExecutor;
 
     @Autowired
-    private FlowExecutor flowExecutor;
+    private PlanService planService;
 
     private final List<ChatQueryParser> chatQueryParsers = ComponentFactory.getChatParsers();
     private final List<ChatQueryExecutor> chatQueryExecutors = ComponentFactory.getChatExecutors();
@@ -135,6 +144,11 @@ public class ChatQueryServiceImpl implements ChatQueryService {
         ParseContext parseContext = buildParseContext(chatParseReq, new ChatParseResp(queryId));
         chatQueryParsers.forEach(p -> p.parse(parseContext));
 
+//        List<ChatQueryParser> parsers = chatQueryParsers.parallelStream().filter(p -> p.accept(parseContext)).toList();
+//        if(!parsers.isEmpty()) {
+//            planService.mapping(parseContext, parsers);
+//        }
+
         for (ParseResultProcessor processor : parseResultProcessors) {
             if (processor.accept(parseContext)) {
                 processor.process(parseContext);
@@ -150,20 +164,51 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     }
 
     @Override
-    public Object execute(ChatExecuteReq chatExecuteReq) {
-        ExecuteContext executeContext = buildExecuteContext(chatExecuteReq);
+    public Object execute(ChatExecuteReq chatExecuteReq) throws GraphStateException {
+        SemanticParseInfo parseInfo = chatManageService.getParseInfo(chatExecuteReq.getQueryId(),
+                chatExecuteReq.getParseId());
+        Agent agent = agentService.getAgent(chatExecuteReq.getAgentId());
+        Map<String, Object> initData = Map.of(
+                ExecuteContext.REQUEST_KEY, chatExecuteReq,
+                ExecuteContext.AGENT_KEY, agent,
+                ExecuteContext.PARSE_KEY, parseInfo
+        );
+        StateGraph<ExecuteContext> executeContextStateGraph = new StateGraph<>(ExecuteContext.SCHEMA, new ExecuteContext.ExecuteContextSerializer())
+                .addEdge(START, SupervisorExecutor.NODE_NAME);
+        Map<String, String> mappings = new ConcurrentHashMap<>();
+        for (var action : ContextUtils.getBeansOfType(ExecutorAgent.class).values()) {
+            executeContextStateGraph = executeContextStateGraph.addNode(action.name(), node_async(action));
+            if(!SupervisorExecutor.NODE_NAME.equals(action.name()) && !FinishExecutor.NODE_NAME.equals(action.name())) {
+                executeContextStateGraph = executeContextStateGraph.addEdge(action.name(), SupervisorExecutor.NODE_NAME);
+            }
+            mappings.put(action.name(), action.name());
+        }
+        mappings.put(FinishExecutor.NODE_NAME, FinishExecutor.NODE_NAME);
+        CompiledGraph<ExecuteContext> workflow = executeContextStateGraph.addConditionalEdges(SupervisorExecutor.NODE_NAME,
+                        edge_async(ExecuteContext::getNext),
+                        mappings)
+                .addEdge(FinishExecutor.NODE_NAME, END).compile();
+
+//        GraphRepresentation executor = workflow.getGraph(GraphRepresentation.Type.PLANTUML, "executor", true);
+//        log.info(executor.content());
+
 
         if (chatExecuteReq.isStream()) {
-            String clientId = executeContext.getRequest().getClientId();
+            String clientId = chatExecuteReq.getClientId();
             SseEmitter conn = sseService.getConn(clientId);
-            Future<LiteflowResponse> chatQueryExecuteChainFuture = flowExecutor.execute2Future("chatQueryExecuteChain", null, executeContext);
+            AsyncGeneratorOperators<NodeOutput<ExecuteContext>> async = workflow.stream(initData).async(commonExecutor);
+            async.collectAsync(new LinkedList<>(), (a, b) -> {
+                log.info(b.toString());
+            });
             return conn;
         }
 
-        LiteflowResponse chatQueryExecuteChain = flowExecutor.execute2Resp("chatQueryExecuteChain", null, executeContext);
-        QueryResult queryResult = executeContext.getResponse();
-        saveQueryResult(executeContext.getRequest(), queryResult);
-
+        Optional<ExecuteContext> invoke = workflow.invoke(initData);
+        if (invoke.isEmpty()) {
+            throw new RuntimeException("empty");
+        }
+        QueryResult queryResult = invoke.get().getResponse();
+        saveQueryResult(chatExecuteReq, queryResult);
         return queryResult;
     }
 
@@ -185,7 +230,11 @@ public class ChatQueryServiceImpl implements ChatQueryService {
         executeReq.setUser(User.getDefaultUser());
         executeReq.setAgentId(chatParseReq.getAgentId());
         executeReq.setSaveAnswer(true);
-        return execute(executeReq);
+        try {
+            return execute(executeReq);
+        } catch (GraphStateException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private ParseContext buildParseContext(ChatParseReq chatParseReq, ChatParseResp chatParseResp) {
@@ -195,15 +244,6 @@ public class ChatQueryServiceImpl implements ChatQueryService {
         return parseContext;
     }
 
-    private ExecuteContext buildExecuteContext(ChatExecuteReq chatExecuteReq) {
-        ExecuteContext executeContext = new ExecuteContext(chatExecuteReq);
-        SemanticParseInfo parseInfo = chatManageService.getParseInfo(chatExecuteReq.getQueryId(),
-                chatExecuteReq.getParseId());
-        Agent agent = agentService.getAgent(chatExecuteReq.getAgentId());
-        executeContext.setAgent(agent);
-        executeContext.setParseInfo(parseInfo);
-        return executeContext;
-    }
 
     @Override
     public Object queryData(ChatQueryDataReq chatQueryDataReq, User user) throws Exception {

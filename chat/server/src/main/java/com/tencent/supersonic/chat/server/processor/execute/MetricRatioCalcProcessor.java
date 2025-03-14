@@ -22,10 +22,10 @@ import com.tencent.supersonic.headless.api.pojo.response.SemanticQueryResp;
 import com.tencent.supersonic.headless.chat.utils.QueryReqBuilder;
 import com.tencent.supersonic.headless.core.config.AggregatorConfig;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
-import com.yomahub.liteflow.annotation.LiteflowComponent;
-import com.yomahub.liteflow.core.NodeComponent;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.bsc.langgraph4j.action.NodeAction;
+import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.text.DecimalFormat;
@@ -58,17 +58,17 @@ import static com.tencent.supersonic.common.pojo.Constants.TIME_FORMAT;
  * Add ratio queries for metric queries.
  */
 @Slf4j
-@LiteflowComponent(MetricRatioCalcProcessor.NODE_NAME)
-public class MetricRatioCalcProcessor extends NodeComponent implements ExecuteResultProcessor {
+@Service
+public class MetricRatioCalcProcessor  implements ExecuteResultProcessor, NodeAction<ExecuteContext> {
 
     public static final String NODE_NAME = "MetricRatioCalcProcessor";
 
     @Override
-    public void process() throws Exception {
-        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+    public Map<String, Object> apply(ExecuteContext executeContext) throws Exception {
         if(accept(executeContext)) {
             process(executeContext);
         }
+        return Map.of();
     }
 
     @Override

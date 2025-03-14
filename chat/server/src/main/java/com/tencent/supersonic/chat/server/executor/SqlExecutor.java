@@ -17,24 +17,24 @@ import com.tencent.supersonic.headless.api.pojo.response.QueryState;
 import com.tencent.supersonic.headless.api.pojo.response.SemanticQueryResp;
 import com.tencent.supersonic.headless.chat.query.llm.s2sql.LLMSqlQuery;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
-import com.yomahub.liteflow.annotation.LiteflowComponent;
-import com.yomahub.liteflow.core.NodeComponent;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
+import org.bsc.langgraph4j.action.NodeAction;
+import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.Map;
 import java.util.Objects;
 
-@LiteflowComponent(SqlExecutor.NODE_NAME)
-public class SqlExecutor extends NodeComponent {
+@Service
+public class SqlExecutor implements NodeAction<ExecuteContext> {
 
     public static final String NODE_NAME = "SqlExecutor";
 
     @Override
-    public void process() throws Exception {
-        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+    public Map<String, Object> apply(ExecuteContext executeContext) throws Exception {
         SemanticParseInfo parseInfo = executeContext.getParseInfo();
-        if (!executeContext.hasResponse() && !Objects.isNull(parseInfo.getSqlInfo())
+        if (Objects.isNull(executeContext.getResponse()) && Objects.nonNull(parseInfo.getSqlInfo())
                 && !StringUtils.isBlank(parseInfo.getSqlInfo().getCorrectedS2SQL())) {
 
             QueryResult queryResult = doExecute(executeContext);
@@ -60,8 +60,9 @@ public class SqlExecutor extends NodeComponent {
                         .updatedBy(executeContext.getRequest().getUser().getName())
                         .createdAt(new Date()).build());
             }
-            executeContext.setResponse(queryResult);
+            return Map.of(ExecuteContext.RESPONSE_KEY, queryResult);
         }
+        return Map.of();
     }
 
     @SneakyThrows

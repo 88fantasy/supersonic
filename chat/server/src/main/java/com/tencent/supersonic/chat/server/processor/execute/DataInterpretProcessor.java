@@ -1,33 +1,45 @@
 package com.tencent.supersonic.chat.server.processor.execute;
 
+import com.tencent.supersonic.chat.api.pojo.request.ChatExecuteReq;
 import com.tencent.supersonic.chat.api.pojo.response.QueryResult;
 import com.tencent.supersonic.chat.server.agent.Agent;
 import com.tencent.supersonic.chat.server.pojo.ExecuteContext;
+import com.tencent.supersonic.chat.server.service.SseService;
 import com.tencent.supersonic.common.pojo.ChatApp;
+import com.tencent.supersonic.common.pojo.ChatModelConfig;
 import com.tencent.supersonic.common.pojo.enums.AppModule;
 import com.tencent.supersonic.common.util.ChatAppManager;
-import com.yomahub.liteflow.annotation.LiteflowComponent;
-import com.yomahub.liteflow.core.NodeComponent;
+import com.tencent.supersonic.common.util.ContextUtils;
+import com.tencent.supersonic.headless.api.pojo.response.QueryState;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.CustomAiMessage;
+import dev.langchain4j.model.StreamingReasoningResponseHandler;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.ModelProvider;
-import org.apache.commons.lang.StringUtils;
+import org.bsc.langgraph4j.action.NodeAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * DataInterpretProcessor interprets query result to make it more readable to the users.
  */
-@LiteflowComponent(DataInterpretProcessor.NODE_NAME)
-public class DataInterpretProcessor extends NodeComponent implements ExecuteResultProcessor {
+@Service
+public class DataInterpretProcessor implements ExecuteResultProcessor, NodeAction<ExecuteContext> {
 
     public static final String NODE_NAME = "DataInterpretProcessor";
 
@@ -59,11 +71,11 @@ public class DataInterpretProcessor extends NodeComponent implements ExecuteResu
     }
 
     @Override
-    public void process() throws Exception {
-        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
-        if(accept(executeContext)) {
+    public Map<String, Object> apply(ExecuteContext executeContext) throws Exception {
+        if (accept(executeContext)) {
             process(executeContext);
         }
+        return Map.of();
     }
 
 
@@ -76,23 +88,86 @@ public class DataInterpretProcessor extends NodeComponent implements ExecuteResu
 
     @Override
     public void process(ExecuteContext executeContext) {
+        ChatExecuteReq request = executeContext.getRequest();
         QueryResult queryResult = executeContext.getResponse();
         Agent agent = executeContext.getAgent();
         ChatApp chatApp = agent.getChatAppConfig().get(APP_KEY);
+        ChatModelConfig chatModelConfig = chatApp.getChatModelConfig();
 
         Map<String, Object> variable = new HashMap<>();
         variable.put("question", executeContext.getRequest().getQueryText());
         variable.put("data", queryResult.getTextResult());
 
         Prompt prompt = PromptTemplate.from(chatApp.getPrompt()).apply(variable);
-        ChatLanguageModel chatLanguageModel =
-                ModelProvider.getChatModel(chatApp.getChatModelConfig());
-        Response<AiMessage> response = chatLanguageModel.generate(prompt.toUserMessage());
-        String anwser = response.content().text();
-        keyPipelineLog.info("DataInterpretProcessor modelReq:\n{} \nmodelResp:\n{}", prompt.text(),
-                anwser);
-        if (StringUtils.isNotBlank(anwser)) {
-            queryResult.setTextSummary(anwser);
+
+        if (request.isStream()) {
+            String clientId = request.getClientId();
+            SseService sseService = ContextUtils.getBean(SseService.class);
+
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
+
+            StreamingChatLanguageModel streamingChatLanguageModel = ModelProvider.getStreamingChatModel(chatModelConfig);
+            streamingChatLanguageModel.generate(prompt.toUserMessage(), new StreamingReasoningResponseHandler<>() {
+                @Override
+                public void onNextReasoning(String token) {
+                    if (StringUtils.hasText(token)) {
+                        queryResult.setQueryState(QueryState.PENDING);
+                        queryResult.setTextSummary("");
+                        queryResult.setResponse(Map.of("reasoningContent", token));
+                        sseService.send(clientId, SseEmitter.event().data(queryResult, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+                    }
+                }
+
+                @Override
+                public void onNext(String token) {
+                    if (StringUtils.hasText(token)) {
+                        queryResult.setQueryState(QueryState.PENDING);
+                        queryResult.setTextSummary(token);
+                        sseService.send(clientId, SseEmitter.event().data(queryResult, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+                    }
+                }
+
+                @Override
+                public void onError(Throwable error) {
+                    try {
+                        queryResult.setQueryState(QueryState.INVALID);
+                        queryResult.setErrorMsg(error.getMessage());
+//                        executeContext.setResponse(queryResult);
+                        sseService.send(clientId, SseEmitter.event().data(queryResult, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+
+                    } finally {
+                        countDownLatch.countDown();
+                    }
+                }
+
+                @Override
+                public void onComplete(Response<AiMessage> response) {
+                    try {
+                        queryResult.setTextSummary(response.content().text());
+                        if (response.content() instanceof CustomAiMessage customAiMessage) {
+                            queryResult.setResponse(customAiMessage.attributes());
+                        }
+//                        executeContext.setResponse(queryResult);
+                        sseService.send(clientId, SseEmitter.event().data(queryResult, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+                    } finally {
+                        countDownLatch.countDown();
+                    }
+                }
+            });
+            try {
+                countDownLatch.await(300, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            ChatLanguageModel chatLanguageModel = ModelProvider.getChatModel(chatApp.getChatModelConfig());
+            Response<AiMessage> response = chatLanguageModel.generate(prompt.toUserMessage());
+            String answer = response.content().text();
+            keyPipelineLog.info("DataInterpretProcessor modelReq:\n{} \nmodelResp:\n{}", prompt.text(),
+                    answer);
+            if (StringUtils.hasText(answer)) {
+                queryResult.setTextSummary(answer);
+            }
         }
     }
 }

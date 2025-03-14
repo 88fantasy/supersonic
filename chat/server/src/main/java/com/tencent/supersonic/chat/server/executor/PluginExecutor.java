@@ -4,23 +4,25 @@ import com.tencent.supersonic.chat.server.plugin.PluginQueryManager;
 import com.tencent.supersonic.chat.server.plugin.build.PluginSemanticQuery;
 import com.tencent.supersonic.chat.server.pojo.ExecuteContext;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
-import com.yomahub.liteflow.annotation.LiteflowComponent;
-import com.yomahub.liteflow.core.NodeComponent;
+import org.bsc.langgraph4j.action.NodeAction;
+import org.springframework.stereotype.Service;
 
-@LiteflowComponent(PluginExecutor.NODE_NAME)
-public class PluginExecutor extends NodeComponent {
+import java.util.Map;
+import java.util.Objects;
+
+@Service
+public class PluginExecutor implements NodeAction<ExecuteContext> {
 
     public static final String NODE_NAME = "PluginExecutor";
 
     @Override
-    public void process() throws Exception {
-        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+    public Map<String, Object> apply(ExecuteContext executeContext) throws Exception {
         SemanticParseInfo parseInfo = executeContext.getParseInfo();
-        if(!executeContext.hasResponse() && PluginQueryManager.isPluginQuery(parseInfo.getQueryMode())) {
+        if (Objects.isNull(executeContext.getResponse()) && PluginQueryManager.isPluginQuery(parseInfo.getQueryMode())) {
             PluginSemanticQuery query = PluginQueryManager.getPluginQuery(parseInfo.getQueryMode());
             query.setParseInfo(parseInfo);
-            executeContext.setResponse(query.build());
+            return Map.of(ExecuteContext.RESPONSE_KEY, query.build());
         }
-
+        return Map.of();
     }
 }

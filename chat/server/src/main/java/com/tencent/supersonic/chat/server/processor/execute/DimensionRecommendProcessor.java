@@ -11,12 +11,13 @@ import com.tencent.supersonic.headless.api.pojo.SchemaElement;
 import com.tencent.supersonic.headless.api.pojo.SchemaElementType;
 import com.tencent.supersonic.headless.api.pojo.SemanticParseInfo;
 import com.tencent.supersonic.headless.server.facade.service.SemanticLayerService;
-import com.yomahub.liteflow.annotation.LiteflowComponent;
-import com.yomahub.liteflow.core.NodeComponent;
+import org.bsc.langgraph4j.action.NodeAction;
+import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,8 +25,8 @@ import java.util.stream.Collectors;
 /**
  * DimensionRecommendProcessor recommend some dimensions related to metrics based on configuration
  */
-@LiteflowComponent(DimensionRecommendProcessor.NODE_NAME)
-public class DimensionRecommendProcessor extends NodeComponent implements ExecuteResultProcessor {
+@Service
+public class DimensionRecommendProcessor implements ExecuteResultProcessor, NodeAction<ExecuteContext> {
 
     public static final String NODE_NAME = "DimensionRecommendProcessor";
 
@@ -33,11 +34,11 @@ public class DimensionRecommendProcessor extends NodeComponent implements Execut
 
 
     @Override
-    public void process() throws Exception {
-        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
+    public Map<String, Object> apply(ExecuteContext executeContext) throws Exception {
         if(accept(executeContext)) {
             process(executeContext);
         }
+        return Map.of();
     }
 
     @Override

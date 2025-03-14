@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,6 +23,6 @@ public class ChatExecuteReq {
     private boolean stream = false;
 
     public String getClientId() {
-        return queryId.toString();
+        return Objects.nonNull(queryId) ? queryId.toString() : null;
     }
 }

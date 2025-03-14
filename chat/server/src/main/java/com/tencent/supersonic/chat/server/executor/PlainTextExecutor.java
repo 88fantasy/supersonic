@@ -1,5 +1,6 @@
 package com.tencent.supersonic.chat.server.executor;
 
+import com.google.common.collect.ImmutableMap;
 import com.tencent.supersonic.chat.api.pojo.request.ChatExecuteReq;
 import com.tencent.supersonic.chat.api.pojo.response.QueryResp;
 import com.tencent.supersonic.chat.api.pojo.response.QueryResult;
@@ -14,14 +15,8 @@ import com.tencent.supersonic.common.pojo.enums.AppModule;
 import com.tencent.supersonic.common.util.ChatAppManager;
 import com.tencent.supersonic.common.util.ContextUtils;
 import com.tencent.supersonic.headless.api.pojo.response.QueryState;
-import com.yomahub.liteflow.annotation.LiteflowComponent;
-import com.yomahub.liteflow.core.NodeComponent;
-import dev.ai4j.deepseek4j.Json;
-import dev.ai4j.deepseek4j.chat.ChatCompletionResponse;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.CustomAiMessage;
-import dev.langchain4j.model.StreamingReasoningResponseHandler;
-import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
@@ -29,25 +24,23 @@ import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.provider.DeepSeekModelFactory;
 import dev.langchain4j.provider.ModelProvider;
+import org.bsc.langgraph4j.action.NodeAction;
+import org.bsc.langgraph4j.langchain4j.generators.StreamingReasoningChatGenerator;
+import org.bsc.langgraph4j.state.AgentState;
+import org.bsc.langgraph4j.streaming.StreamingOutput;
 import org.springframework.http.MediaType;
-import org.springframework.util.StringUtils;
+import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static dev.langchain4j.model.deepseek.InternalDeepSeekHelper.aiMessageFrom;
-
-@LiteflowComponent(PlainTextExecutor.NODE_NAME)
-public class PlainTextExecutor extends NodeComponent {
+@Service
+public class PlainTextExecutor extends ExecutorAgent {
 
     public static final String NODE_NAME = "PlainTextExecutor";
 
@@ -74,10 +67,15 @@ public class PlainTextExecutor extends NodeComponent {
                 .build());
     }
 
+
     @Override
-    public void process() throws Exception {
-        ExecuteContext executeContext = this.getContextBean(ExecuteContext.class);
-        if (!executeContext.hasResponse() && "PLAIN_TEXT".equals(executeContext.getParseInfo().getQueryMode())) {
+    public String name() {
+        return NODE_NAME;
+    }
+
+    @Override
+    public Map<String, Object> apply(ExecuteContext executeContext) throws Exception {
+        if (QueryState.EMPTY.equals(executeContext.getResponse().getQueryState()) && "PLAIN_TEXT".equals(executeContext.getParseInfo().getQueryMode())) {
             ChatExecuteReq request = executeContext.getRequest();
             AgentService agentService = ContextUtils.getBean(AgentService.class);
             Agent chatAgent = agentService.getAgent(executeContext.getAgent().getId());
@@ -87,78 +85,116 @@ public class PlainTextExecutor extends NodeComponent {
                         request.getQueryText());
                 Prompt prompt = PromptTemplate.from(promptStr).apply(Collections.EMPTY_MAP);
                 ChatModelConfig chatModelConfig = chatApp.getChatModelConfig();
-                chatModelConfig.setLogResponses(true);
 
                 if (request.isStream()) {
                     String clientId = request.getClientId();
                     SseService sseService = ContextUtils.getBean(SseService.class);
 
-                    final CountDownLatch countDownLatch = new CountDownLatch(1);
+
+                    StreamingReasoningChatGenerator<ExecuteContext, AiMessage> generator = StreamingReasoningChatGenerator.<ExecuteContext, AiMessage>builder()
+                            .mapResult(r -> {
+                                AiMessage content = r.content();
+                                ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
+                                        .put(ExecuteContext.MESSAGES_KEY, content.text());
+                                if (content instanceof CustomAiMessage customAiMessage) {
+                                    builder.put(ExecuteContext.ATTRIBUTES_KEY, customAiMessage.attributes());
+                                }
+                                return builder.build();
+                            })
+                            .startingNode(NODE_NAME)
+                            .startingState(executeContext)
+                            .build();
+
+//                    final CountDownLatch countDownLatch = new CountDownLatch(1);
 
                     StreamingChatLanguageModel streamingChatLanguageModel = ModelProvider.getStreamingChatModel(chatModelConfig);
-                    streamingChatLanguageModel.generate(prompt.toUserMessage(), new StreamingReasoningResponseHandler<>() {
-                        @Override
-                        public void onNextReasoning(String token) {
-                            if (StringUtils.hasText(token)) {
-                                QueryResult result = new QueryResult();
-                                result.setQueryId(request.getQueryId());
-                                result.setQueryState(QueryState.PENDING);
-                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
-                                result.setTextResult("");
-                                result.setResponse(Map.of("reasoningContent", token));
-                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
-                            }
-                        }
-
-                        @Override
-                        public void onNext(String token) {
-                            if (StringUtils.hasText(token)) {
-                                QueryResult result = new QueryResult();
-                                result.setQueryId(request.getQueryId());
-                                result.setQueryState(QueryState.PENDING);
-                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
-                                result.setTextResult(token);
-                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
-                            }
-                        }
-
-                        @Override
-                        public void onError(Throwable error) {
-                            try {
-                                QueryResult result = new QueryResult();
-                                result.setQueryState(QueryState.INVALID);
-                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
-                                result.setErrorMsg(error.getMessage());
-                                executeContext.setResponse(result);
-                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
-
-                            } finally {
-                                countDownLatch.countDown();
-                            }
-                        }
-
-                        @Override
-                        public void onComplete(Response<AiMessage> response) {
-                            try {
-                                QueryResult result = new QueryResult();
-                                result.setQueryState(QueryState.SUCCESS);
-                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
-                                result.setTextResult(response.content().text());
-                                if (response.content() instanceof CustomAiMessage customAiMessage) {
-                                    result.setResponse(customAiMessage.attributes());
-                                }
-                                executeContext.setResponse(result);
-                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
-                            } finally {
-                                countDownLatch.countDown();
-                            }
-                        }
-                    });
-                    try {
-                        countDownLatch.await(300, TimeUnit.SECONDS);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+                    streamingChatLanguageModel.generate(prompt.toUserMessage(), generator.handler());
+                    for (StreamingOutput<ExecuteContext> r : generator) {
+                        QueryResult result = new QueryResult();
+                        result.setQueryId(request.getQueryId());
+                        result.setQueryState(QueryState.PENDING);
+                        result.setQueryMode(executeContext.getParseInfo().getQueryMode());
+                        result.setTextResult("");
+                        result.setResponse(Map.of("reasoningContent", r.chunk()));
+                        sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
                     }
+                    Optional<Object> optional = generator.resultValue();
+                    if (optional.isEmpty()) {
+
+                    }
+                    Map<String, Object> response = (Map<String, Object>) optional.get();
+                    QueryResult result = new QueryResult();
+                    result.setQueryState(QueryState.SUCCESS);
+                    result.setQueryMode(executeContext.getParseInfo().getQueryMode());
+                    result.setTextResult((String) response.getOrDefault(ExecuteContext.MESSAGES_KEY, ""));
+                    result.setResponse(response.get(ExecuteContext.ATTRIBUTES_KEY));
+                    sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+                    return Map.of(ExecuteContext.RESPONSE_KEY, result);
+//                    return AgentState.updateState(executeContext, response, ExecuteContext.SCHEMA);
+
+//                    streamingChatLanguageModel.generate(prompt.toUserMessage(), new StreamingReasoningResponseHandler<>() {
+//                        @Override
+//                        public void onNextReasoning(String token) {
+//                            if (StringUtils.hasText(token)) {
+//                                QueryResult result = new QueryResult();
+//                                result.setQueryId(request.getQueryId());
+//                                result.setQueryState(QueryState.PENDING);
+//                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
+//                                result.setTextResult("");
+//                                result.setResponse(Map.of("reasoningContent", token));
+//                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+//                            }
+//                        }
+//
+//                        @Override
+//                        public void onNext(String token) {
+//                            if (StringUtils.hasText(token)) {
+//                                QueryResult result = new QueryResult();
+//                                result.setQueryId(request.getQueryId());
+//                                result.setQueryState(QueryState.PENDING);
+//                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
+//                                result.setTextResult(token);
+//                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+//                            }
+//                        }
+//
+//                        @Override
+//                        public void onError(Throwable error) {
+//                            try {
+//                                QueryResult result = new QueryResult();
+//                                result.setQueryState(QueryState.INVALID);
+//                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
+//                                result.setErrorMsg(error.getMessage());
+//                                executeContext.setResponse(result);
+//                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+//
+//                            } finally {
+//                                countDownLatch.countDown();
+//                            }
+//                        }
+//
+//                        @Override
+//                        public void onComplete(Response<AiMessage> response) {
+//                            try {
+//                                QueryResult result = new QueryResult();
+//                                result.setQueryState(QueryState.SUCCESS);
+//                                result.setQueryMode(executeContext.getParseInfo().getQueryMode());
+//                                result.setTextResult(response.content().text());
+//                                if (response.content() instanceof CustomAiMessage customAiMessage) {
+//                                    result.setResponse(customAiMessage.attributes());
+//                                }
+//                                executeContext.setResponse(result);
+//                                sseService.send(clientId, SseEmitter.event().data(result, MediaType.APPLICATION_JSON).reconnectTime(3000L));
+//                            } finally {
+//                                countDownLatch.countDown();
+//                            }
+//                        }
+//                    });
+//                    try {
+//                        countDownLatch.await(300, TimeUnit.SECONDS);
+//                    } catch (InterruptedException e) {
+//                        throw new RuntimeException(e);
+//                    }
 
                 } else {
                     ChatLanguageModel chatLanguageModel = ModelProvider.getChatModel(chatModelConfig);
@@ -171,10 +207,11 @@ public class PlainTextExecutor extends NodeComponent {
                     if (response.content() instanceof CustomAiMessage customAiMessage) {
                         result.setResponse(customAiMessage.attributes());
                     }
-                    executeContext.setResponse(result);
+                    return Map.of(ExecuteContext.RESPONSE_KEY, result);
                 }
             }
         }
+        return Map.of();
     }
 
     private String getHistoryInputs(ExecuteContext executeContext) {
@@ -202,4 +239,5 @@ public class PlainTextExecutor extends NodeComponent {
 
         return contextualList;
     }
+
 }

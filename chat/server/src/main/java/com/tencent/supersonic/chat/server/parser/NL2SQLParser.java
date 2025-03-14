@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -84,6 +85,36 @@ public class NL2SQLParser implements ChatQueryParser {
                         #历史SQL查询: {{history_sql}}
                         #重写后的问题:
                         """)).build());
+    }
+
+    @Override
+    public String code() {
+        return "analysis";
+    }
+
+    @Override
+    public String name() {
+        return "数据分析";
+    }
+
+    @Override
+    public String description() {
+        return "当问题需要统计、计算、趋势分析等数据处理";
+    }
+
+    @Override
+    public Collection<String> keywords() {
+        return List.of("总数", "统计", "趋势", "增长率", "对比", "多少");
+    }
+
+    @Override
+    public Collection<String> exemplars() {
+        return List.of("Q3住院量环比增长多少?", "绘制血糖监测分布图");
+    }
+
+    @Override
+    public boolean accept(ParseContext parseContext) {
+        return false;
     }
 
     @Override
